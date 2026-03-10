@@ -35,28 +35,6 @@ def sample_solr_search_response():
 
 
 @pytest.fixture
-def sample_html_search_results():
-    """Kept for backwards compatibility; not used by statute_fetcher tests.
-
-    The fetcher now calls the Solr JSON API rather than scraping the
-    JavaScript-rendered HTML search results page.
-    """
-    return """
-    <html><body>
-      <div id="docs">
-        <div class="result">
-          <h2>
-            <a href="https://www.irishstatutebook.ie/2004/en/act/pub/0024/index.html">
-              Civil Liability and Courts Act 2004
-            </a>
-          </h2>
-        </div>
-      </div>
-    </body></html>
-    """
-
-
-@pytest.fixture
 def sample_html_act_page():
     """Minimal HTML mimicking an Act page on irishstatutebook.ie.
 

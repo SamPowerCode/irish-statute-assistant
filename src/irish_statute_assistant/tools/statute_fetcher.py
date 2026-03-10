@@ -9,7 +9,6 @@ sections are wrapped in <table class="t1"> elements inside <div id="act">.
 """
 
 import time
-from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
@@ -41,6 +40,7 @@ def search_statutes(query: str) -> list[dict]:
     Uses the Solr JSON API directly.  Results are filtered to type == 'act'
     so that Statutory Instruments are excluded.
     """
+    time.sleep(RATE_LIMIT_DELAY)
     params = {"q": query, "wt": "json"}
     response = httpx.get(SOLR_SEARCH_URL, params=params, timeout=30)
     response.raise_for_status()

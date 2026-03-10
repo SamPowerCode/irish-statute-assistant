@@ -84,3 +84,8 @@ def test_clarifier_needs_clarification():
 def test_clarifier_no_clarification_needed():
     data = ClarifierOutput(needs_clarification=False)
     assert data.question is None
+
+
+def test_clarifier_question_required_when_needs_clarification_true():
+    with pytest.raises(ValidationError):
+        ClarifierOutput(needs_clarification=True, question=None)

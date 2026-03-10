@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ActSection(BaseModel):
@@ -51,3 +51,9 @@ class EvaluatorOutput(BaseModel):
 class ClarifierOutput(BaseModel):
     needs_clarification: bool
     question: Optional[str] = None
+
+    @model_validator(mode="after")
+    def question_required_when_clarification_needed(self) -> "ClarifierOutput":
+        if self.needs_clarification and self.question is None:
+            raise ValueError("question must be provided when needs_clarification is True")
+        return self

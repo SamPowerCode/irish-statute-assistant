@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.models.schemas import WriterOutput

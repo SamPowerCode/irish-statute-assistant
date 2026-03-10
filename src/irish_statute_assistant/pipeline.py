@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from irish_statute_assistant.agents.supervisor import Supervisor
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.memory.session_memory import SessionMemory

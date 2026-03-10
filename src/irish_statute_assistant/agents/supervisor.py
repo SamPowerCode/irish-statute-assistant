@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from irish_statute_assistant.agents.analyst import AnalystAgent
 from irish_statute_assistant.agents.clarifier import ClarifierAgent
 from irish_statute_assistant.agents.evaluator import EvaluatorAgent

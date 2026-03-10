@@ -37,7 +37,7 @@ class WriterAgent:
         llm = ChatAnthropic(
             model=config.model_name,
             api_key=config.anthropic_api_key,
-            max_tokens=1024,
+            max_tokens=2048,
         ).with_structured_output(WriterOutput)
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),

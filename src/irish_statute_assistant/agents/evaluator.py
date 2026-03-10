@@ -44,7 +44,7 @@ class EvaluatorAgent:
 
     def run(self, query: str, output: WriterOutput) -> EvaluatorOutput:
         bd = output.detailed_breakdown
-        return self._chain.invoke({
+        result = self._chain.invoke({
             "threshold": self._threshold,
             "query": query,
             "short_answer": output.short_answer,
@@ -53,3 +53,5 @@ class EvaluatorAgent:
             "key_clauses": "\n".join(bd.key_clauses),
             "caveats": "\n".join(bd.caveats),
         })
+        # Enforce threshold locally — the LLM's pass_ may be inconsistent with its score
+        return result.model_copy(update={"pass_": result.score >= self._threshold})

@@ -6,12 +6,14 @@ from irish_statute_assistant.tools.statute_fetcher import fetch_act_sections, se
 
 class ResearcherAgent:
     def __init__(self, config: Config, cache: SessionCache) -> None:
+        self._config = config  # stored for future use (e.g. wiring rate_limit_delay)
         self._cache = cache
         self._search = search_statutes
         self._fetch = fetch_act_sections
 
     def run(self, query: str) -> ResearcherOutput:
         results = self._search(query)
+        # Guard required: ResearcherOutput.acts has min_length=1, but ValueError gives a clearer message
         if not results:
             raise ValueError(f"No Acts found for query: {query!r}")
 

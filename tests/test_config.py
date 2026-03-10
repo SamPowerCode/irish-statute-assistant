@@ -1,4 +1,6 @@
 import pytest
+from pydantic import ValidationError
+
 from irish_statute_assistant.config import Config
 
 
@@ -12,8 +14,7 @@ def test_config_loads_defaults():
     assert config.rate_limit_delay == 1.0
 
 
-def test_config_requires_api_key():
-    import os
-    os.environ.pop("ANTHROPIC_API_KEY", None)
-    with pytest.raises(Exception):
+def test_config_requires_api_key(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    with pytest.raises(ValidationError):
         Config()

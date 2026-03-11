@@ -1,6 +1,6 @@
 # Irish Statute Research Assistant
 
-A multi-agent AI system that answers natural language legal questions in plain English using live Irish statute law from [irishstatutebook.ie](https://www.irishstatutebook.ie).
+A multi-agent AI system that answers natural language legal questions in plain English using Irish statute law from [irishstatutebook.ie](https://www.irishstatutebook.ie), retrieved via a local ChromaDB vector store.
 
 Built with LangChain and Claude as a 7-week agentic AI capstone project (Gold level).
 
@@ -14,7 +14,7 @@ Six agents orchestrated by a Supervisor:
 |-------|------|
 | **Supervisor** | Routes queries, manages the refinement loop |
 | **Clarifier** | Asks one focused question when a query is too vague |
-| **Legal Researcher** | Searches and fetches relevant Acts from irishstatutebook.ie |
+| **Legal Researcher** | Queries a local ChromaDB vector store (built from irishstatutebook.ie), falls back to live HTTP fetch if the store is empty |
 | **Legal Analyst** | Interprets statute text, identifies key clauses, assigns a confidence score |
 | **Plain English Writer** | Produces a short answer (≤100 words) and a detailed breakdown |
 | **Evaluator** | Scores the output and triggers a refinement loop if quality falls below threshold |
@@ -32,6 +32,16 @@ pip install -r requirements.txt
 cp .env.example .env
 # Add your ANTHROPIC_API_KEY to .env
 ```
+
+## Index statutes (one-time)
+
+Build the local vector store before running the assistant:
+
+```bash
+python -m irish_statute_assistant.indexer
+```
+
+This crawls irishstatutebook.ie by legal category, embeds the statute sections, and persists them to `data/chroma/`. Re-run to refresh the index.
 
 ## Run
 
@@ -66,9 +76,11 @@ src/irish_statute_assistant/
   tools/
     statute_fetcher.py   # Fetches from irishstatutebook.ie (Solr API + HTML)
     session_cache.py     # In-session URL cache
+    vector_store.py      # ChromaDB wrapper for local statute search
   memory/
     session_memory.py    # Conversation history
-tests/               # 51 tests, all passing
+  indexer.py             # One-time script to build the local vector store
+tests/               # 66 tests, all passing
 ```
 
 ---
@@ -86,3 +98,7 @@ All settings can be overridden in `.env`:
 | `MAX_RETRIES` | `3` | HTTP retry attempts on transient errors |
 | `TOKEN_BUDGET_PER_QUERY` | `4000` | Token cap per query |
 | `RATE_LIMIT_DELAY` | `1.0` | Seconds between statute book requests |
+| `CHROMA_DB_PATH` | `./data/chroma` | Disk path for the ChromaDB vector store |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | sentence-transformers model for embeddings |
+| `INDEX_CATEGORIES` | 10 legal categories | Categories crawled by the indexer |
+| `ACTS_PER_CATEGORY` | `5` | Max Acts collected per category during indexing |

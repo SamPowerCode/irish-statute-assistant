@@ -9,3 +9,6 @@ tenacity>=8.0
 pytest>=8.0
 pytest-httpx>=0.30
 python-dotenv>=1.0
+langchain-chroma>=0.1
+langchain-huggingface>=0.1
+sentence-transformers>=3.0

@@ -25,10 +25,10 @@ Session memory keeps the conversation coherent within a single run. The system a
 
 ## Setup
 
-**Requirements:** Python 3.10+
+**Requirements:** Python 3.10+, [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
 ```bash
-pip install -r requirements.txt
+uv sync
 cp .env.example .env
 # Add your ANTHROPIC_API_KEY to .env
 ```

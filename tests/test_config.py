@@ -18,3 +18,13 @@ def test_config_requires_api_key(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(ValidationError):
         Config()
+
+
+def test_config_chroma_defaults(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    config = Config()
+    assert config.chroma_db_path == "./data/chroma"
+    assert config.embedding_model == "all-MiniLM-L6-v2"
+    assert config.acts_per_category == 5
+    assert "employment" in config.index_categories
+    assert "housing" in config.index_categories

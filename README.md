@@ -38,7 +38,7 @@ cp .env.example .env
 Build the local vector store before running the assistant:
 
 ```bash
-python -m irish_statute_assistant.indexer
+uv run python -m irish_statute_assistant.indexer
 ```
 
 This crawls irishstatutebook.ie by legal category, embeds the statute sections, and persists them to `data/chroma/`. Re-run to refresh the index.
@@ -46,13 +46,13 @@ This crawls irishstatutebook.ie by legal category, embeds the statute sections, 
 ## Run
 
 ```bash
-python3 -m irish_statute_assistant.main
+uv run python -m irish_statute_assistant.main
 ```
 
 ## Test
 
 ```bash
-pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ---

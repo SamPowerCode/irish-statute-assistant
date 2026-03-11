@@ -12,7 +12,6 @@ def make_researcher_with_mocks(search_results, sections_per_act):
 
     # _vector_store required by run() after the vector-store update.
     # Set is_populated=False so existing tests continue to exercise the live-fetch path.
-    from unittest.mock import MagicMock
     mock_store = MagicMock()
     mock_store.is_populated.return_value = False
     agent._vector_store = mock_store

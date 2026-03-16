@@ -230,7 +230,16 @@ class StatuteFetcher:
 - Construct `StatuteFetcher(config.rate_limit_delay, config.max_retries)` and pass to `ResearcherAgent`
 
 **Changes to `test_researcher.py`:**
-- Update fixture to construct `StatuteFetcher` and inject it, or mock the fetcher instance directly
+
+Both fixtures (`make_researcher_with_mocks` and `make_researcher_with_vector_store`) currently set `agent._search` and `agent._fetch` directly. Both must be updated: replace those assignments with `agent._fetcher = MagicMock(spec=StatuteFetcher)` and set `.search.return_value` / `.fetch.return_value` accordingly. The two tests asserting `pytest.raises(ValueError)` become `pytest.raises(StatuteNotFoundError)`.
+
+**Changes to `test_statute_fetcher.py`:**
+
+Tests should instantiate `StatuteFetcher(rate_limit_delay=0.0, max_retries=3)` so that `time.sleep` is a no-op during testing. The retry test (`test_search_statutes_retries_on_failure`) should queue two HTTP 500 responses followed by one 200 response (the existing `pytest_httpx` pattern already supports this). The tenacity `Retrying` context manager retries synchronously, so the test structure is the same as the decorator-based version — no additional patching needed as long as `wait_exponential` is called with short intervals (which tenacity respects without sleeping when retries are fast in tests, though patching `time.sleep` is safer).
+
+**Note on token counting and retries:** If `run_with_retry` retries an agent call, `last_token_count` reflects only the final successful invocation's tokens. Failed retry attempts still consumed tokens but are not counted. This is a deliberate simplification — documented here as a known limitation.
+
+**Note on streaming:** `TokenUsageCallback` assumes `stream=False` (the default for all current agents). If streaming is added in future, `on_llm_end` may not be called and token tracking would silently stop working.
 
 ---
 

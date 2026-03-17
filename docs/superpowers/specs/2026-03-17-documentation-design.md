@@ -11,7 +11,7 @@ This document specifies the documentation system for the Irish Statute Assistant
 
 The README is kept as a quick-start entry point. Sphinx provides the full reference, hosted on ReadTheDocs.
 
-No capstone tier labels (Bronze/Gold/Platinum) appear anywhere in the user-facing documentation. Features are described by what they do.
+No capstone framing or tier labels appear anywhere in the user-facing documentation. The project is presented as a standalone application. Features are described by what they do.
 
 ---
 
@@ -52,7 +52,8 @@ docs/
     ├── agents.md
     ├── schemas.md
     ├── config.md
-    └── memory.md
+    ├── memory.md
+    └── pipeline.md
 ```
 
 ---
@@ -65,7 +66,7 @@ docs/
 Python version requirement, `uv` setup, API key configuration via `.env`, choosing a vector store backend (Chroma local vs Qdrant). Brief — links to README for the absolute basics.
 
 **`running.md`**
-How to start the CLI, the query/answer loop, handling clarifying questions, continuing a conversation across sessions. Annotated example of a real interaction showing each part of the output: short answer, key clauses with citations, caveats, grounding warnings, low-confidence banner.
+How to start the CLI, the query/answer loop, handling clarifying questions, continuing a conversation across sessions. Annotated example of a real interaction showing each part of the output: short answer, key clauses with citations, caveats, grounding warnings, and the low-confidence notice (printed by `main.py` when `analyst_confidence < 0.5`).
 
 **`configuration.md`**
 Authoritative table of every `.env` setting: name, type, default, description. Grouped by concern: LLM provider, vector store, memory, tuning. This replaces the config table currently in the README.
@@ -90,10 +91,17 @@ One section per agent:
 Covers the split-schema pattern (`AnalystLLMOutput` vs `AnalystOutput` — why `advocate_challenges` is excluded from the LLM schema), the confidence gate logic, and how the refinement loop carries `evaluator_flags` and `advocate_challenges` forward.
 
 **`schemas.md`**
-Explains `KeyClause` (structured citations enforcing `act` and `section` fields), `WriterOutput` with `warnings` and `analyst_confidence`, `AdvocateOutput`, `GroundingOutput`, and Pydantic v2 patterns used throughout (`with_structured_output`, `Field` constraints, `model_validator`).
+Explains the key schemas and the patterns behind them:
+- `KeyClause` — structured citations enforcing `act` and `section` fields
+- `ClarifierOutput` — drives the clarification flow (`needs_clarification`, `question`)
+- `EvaluatorOutput` — central to the refinement loop; the `pass_` alias pattern (Pydantic alias for a Python reserved word)
+- `WriterOutput` with `warnings` and `analyst_confidence`
+- `AdvocateOutput` and `GroundingOutput`
+- `ResearcherOutput` / `ActSection` — statute text passed through the pipeline
+- Pydantic v2 patterns used throughout: `with_structured_output`, `Field` constraints, `model_validator`
 
 **`memory.md`**
-Explains `ConversationStore` and `UserPreferenceStore`: what each stores, why SQLite was chosen over in-memory state, how history limits work, and how preference detection operates (explicit keyword scan + inferred preference logic from repeated evaluator flags).
+Explains `ConversationStore` and `UserPreferenceStore`: what each stores, why SQLite was chosen over in-memory state, how history limits work, and how preference detection operates (explicit keyword scan + inferred preference logic from repeated evaluator flags). Includes how `format_for_prompt()` is the integration point between the memory store and agent prompts — stored conversation history flows back into LLM calls via this method.
 
 **`flows.md`**
 Three Mermaid sequence diagrams:
@@ -136,7 +144,8 @@ Changes to `README.md`:
 - Remove the detailed `.env` configuration table (now lives in `configuration.md`)
 - Add a "Full documentation" link pointing to the ReadTheDocs URL
 - Update provider/model defaults to reflect current values
-- Remove any capstone tier references
+- Remove the capstone framing line ("7-week agentic AI capstone project") and any tier labels — rewrite the opening description to present the project as a standalone application
+- Update the agent list to reflect all 8 agents: clarifier, researcher, analyst, devil's advocate, writer, grounding checker, evaluator, supervisor
 - Keep: installation steps, quick-start example, vector store backend overview
 
 ---
@@ -151,7 +160,7 @@ Changes to `README.md`:
 | sphinxcontrib-mermaid | Embed Mermaid diagrams in Markdown pages |
 | Furo | Theme |
 | ReadTheDocs | Hosting (auto-builds on push to `main`) |
-| `.readthedocs.yaml` | Build configuration for ReadTheDocs |
+| `.readthedocs.yaml` | Build configuration for ReadTheDocs; must pin Sphinx and all extensions (including `sphinxcontrib-mermaid`) to tested versions to ensure reproducible builds |
 
 ---
 

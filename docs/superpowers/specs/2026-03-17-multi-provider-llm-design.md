@@ -11,7 +11,7 @@
 All five agents currently hardcode `ChatAnthropic`. Adding provider choice requires:
 - A factory function that returns the right LangChain chat model
 - Config fields for provider selection and per-provider API keys
-- Updated token counting to handle each provider's response format
+- Fixed and extended token counting (the existing `TokenUsageCallback` silently counts zero tokens for all providers including Anthropic — this spec fixes that bug and extends it to all four providers)
 
 ---
 
@@ -36,9 +36,11 @@ groq_api_key: str = ""
 
 `anthropic_api_key` changes from required to `str = ""`.
 
+`model_name` changes from `str = "claude-sonnet-4-6"` to `str = ""`. The `model_validator` always sets it from `_DEFAULT_MODELS` when empty, so the effective default per provider is clear and there is no misleading class-level default.
+
 ### Default models
 
-A `model_validator` sets `model_name` to a provider-appropriate default when the user has not set `MODEL_NAME` explicitly:
+`_DEFAULT_MODELS` is the single canonical source of truth, defined in `llm.py` and imported by `config.py`:
 
 | Provider  | Default model              |
 |-----------|---------------------------|
@@ -47,11 +49,11 @@ A `model_validator` sets `model_name` to a provider-appropriate default when the
 | google    | `gemini-2.0-flash`         |
 | groq      | `llama-3.3-70b-versatile`  |
 
-### Key validation
-
-The same `model_validator` raises `ValueError` (surfaced as `ValidationError`) if the API key for the chosen provider is empty:
+### Key validation and model defaulting
 
 ```python
+from irish_statute_assistant.llm import _DEFAULT_MODELS
+
 _PROVIDER_KEY_MAP = {
     "anthropic": "anthropic_api_key",
     "openai":    "openai_api_key",
@@ -60,7 +62,11 @@ _PROVIDER_KEY_MAP = {
 }
 
 @model_validator(mode="after")
-def check_provider_key(self) -> "Config":
+def check_provider_and_set_model(self) -> "Config":
+    # Set default model if not explicitly provided
+    if not self.model_name:
+        self.model_name = _DEFAULT_MODELS[self.llm_provider]
+    # Validate that the required API key for the chosen provider is set
     key_field = _PROVIDER_KEY_MAP[self.llm_provider]
     if not getattr(self, key_field):
         raise ValueError(
@@ -69,13 +75,25 @@ def check_provider_key(self) -> "Config":
     return self
 ```
 
+The validator uses `self.model_name` (empty string = not set) rather than `model_fields_set`, which is simpler and equally correct given the field default is now `""`.
+
 ---
 
 ## Section 2: `get_llm()` Factory
 
 **New file:** `src/irish_statute_assistant/llm.py`
 
+`_DEFAULT_MODELS` lives here and is imported by `config.py` — single source of truth.
+
+`llm.py` uses `TYPE_CHECKING` to avoid a circular import (`config.py` imports `_DEFAULT_MODELS` from `llm.py`; `llm.py` needs `Config` for type annotations). At runtime, `Config` is never imported by `llm.py`; the annotation is only evaluated by type checkers.
+
 ```python
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from irish_statute_assistant.config import Config
+
 _DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-6",
     "openai":    "gpt-4o",
@@ -95,6 +113,7 @@ def get_llm(config: Config, max_tokens: int):
         )
     elif config.llm_provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
+        # Note: Google uses max_output_tokens, not max_tokens
         return ChatGoogleGenerativeAI(
             model=config.model_name,
             google_api_key=config.google_api_key,
@@ -151,32 +170,27 @@ llm = get_llm(config, max_tokens=N)
 
 **File:** `src/irish_statute_assistant/agents/base_agent.py`
 
-`TokenUsageCallback.on_llm_end` currently only reads Anthropic's token format. Updated to try all four provider formats:
+### Existing bug
 
-| Provider | Location | Keys |
-|----------|----------|------|
-| OpenAI / Groq | `response.llm_output["token_usage"]` | `prompt_tokens`, `completion_tokens` |
-| Anthropic | `generation_info` | `input_tokens`, `output_tokens` |
-| Google | `generation_info["usage_metadata"]` | `total_token_count` |
+The current `TokenUsageCallback.on_llm_end` reads from `generation_info["input_tokens"]` / `generation_info["output_tokens"]`. This is incorrect — `ChatAnthropic` places token counts on `message.usage_metadata`, not in `generation_info`. As a result, the existing callback silently counts zero tokens for every call, meaning `QueryContext` budget enforcement never actually fires. This spec fixes that bug.
+
+### Correct approach: `message.usage_metadata`
+
+All four providers in scope (Anthropic, OpenAI, Groq, Google) set `usage_metadata` on the `AIMessage` inside each `ChatGeneration`. LangChain normalises the keys to `input_tokens`, `output_tokens`, and `total_tokens` across providers. Reading `total_tokens` from `gen.message.usage_metadata` is the universal approach:
 
 ```python
 def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
-    # OpenAI / Groq: token_usage in llm_output
-    if response.llm_output:
-        usage = response.llm_output.get("token_usage", {})
-        if usage:
-            self.total_tokens += usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0)
-            return
-    # Anthropic / Google: check generation_info
     for generation in response.generations:
         for gen in generation:
-            info = getattr(gen, "generation_info", {}) or {}
-            self.total_tokens += info.get("input_tokens", 0) + info.get("output_tokens", 0)
-            meta = info.get("usage_metadata", {}) or {}
-            self.total_tokens += meta.get("total_token_count", 0)
+            msg = getattr(gen, "message", None)
+            meta = getattr(msg, "usage_metadata", None) if msg else None
+            if meta:
+                self.total_tokens += meta.get("total_tokens", 0)
+    if self.total_tokens == 0:
+        logger.debug("TokenUsageCallback: no token counts found in response — budget enforcement inactive for this call")
 ```
 
-If no format matches, `total_tokens` stays 0 — budget enforcement silently skips. Nothing breaks.
+The `logger.debug` line makes silent zero-counting observable without being noisy in production.
 
 ---
 
@@ -198,27 +212,25 @@ Three new packages added to `dependencies`:
 
 ### `tests/test_config.py`
 
-New tests:
-- `test_config_default_model_per_provider` — verify default model is set correctly for each provider when `MODEL_NAME` is not given
-- `test_config_missing_provider_key_raises` — verify `ValidationError` is raised when the chosen provider's key is empty
-- `test_config_anthropic_still_works` — verify existing Anthropic config behaviour is unchanged
+- `test_config_loads_defaults` — **update** to use `Config(anthropic_api_key="test-key")` which still works (provider defaults to `"anthropic"`, key is set); also assert `model_name == "claude-sonnet-4-6"` (set by validator from `_DEFAULT_MODELS`)
+- `test_config_default_model_per_provider` — new: verify `model_name` is set to the correct default for each provider when `MODEL_NAME` env var is not given
+- `test_config_missing_provider_key_raises` — new: verify `ValidationError` is raised when the chosen provider's key is empty (parametrised over all four providers)
+- `test_config_requires_api_key` — already updated to use `Config(_env_file=None)`; remains valid since Anthropic is the default provider and no Anthropic key is set
 
 ### `tests/test_llm.py` (new)
 
-- `test_get_llm_returns_correct_class_for_each_provider` — mock config per provider, assert `get_llm()` returns the right LangChain class
-- No real API calls — patch the LangChain constructors
+- `test_get_llm_returns_correct_class_for_each_provider` — for each provider, construct a minimal `Config` with the provider's key set, call `get_llm()`, assert it returns the right LangChain class. Patch the four LangChain constructors to avoid importing uninstalled packages.
 
 ### Existing tests
 
-No changes required. Agent tests mock `_chain` directly and are unaffected by what built it.
+All existing agent, supervisor, pipeline, researcher, statute fetcher, and vector store tests are unaffected — they mock `_chain` directly.
 
 ---
 
 ## Section 7: README
 
 New "LLM providers" section documenting:
-- The four supported providers
-- Default model for each
+- The four supported providers with their default models
 - Required env var for each
 - Example `.env` snippets for switching providers
 
@@ -228,15 +240,15 @@ New "LLM providers" section documenting:
 
 | File | Change |
 |------|--------|
-| `src/irish_statute_assistant/llm.py` | **New** — `get_llm()` factory |
-| `src/irish_statute_assistant/config.py` | Add provider + API key fields; model validator |
-| `src/irish_statute_assistant/agents/base_agent.py` | Multi-provider token counting |
+| `src/irish_statute_assistant/llm.py` | **New** — `get_llm()` factory and `_DEFAULT_MODELS` |
+| `src/irish_statute_assistant/config.py` | Add provider + API key fields; model validator; import `_DEFAULT_MODELS` from `llm.py` |
+| `src/irish_statute_assistant/agents/base_agent.py` | Fix token counting bug; extend to all four providers via `message.usage_metadata` |
 | `src/irish_statute_assistant/agents/analyst.py` | Use `get_llm()` |
 | `src/irish_statute_assistant/agents/clarifier.py` | Use `get_llm()` |
 | `src/irish_statute_assistant/agents/evaluator.py` | Use `get_llm()` |
 | `src/irish_statute_assistant/agents/writer.py` | Use `get_llm()` |
 | `pyproject.toml` | Add three LangChain provider packages |
-| `tests/test_config.py` | Add provider validation tests |
+| `tests/test_config.py` | Update `test_config_loads_defaults`; add provider validation tests |
 | `tests/test_llm.py` | **New** — factory tests |
 | `README.md` | Add LLM providers section |
 
@@ -247,3 +259,8 @@ New "LLM providers" section documenting:
 - All vector store code
 - All supervisor/pipeline/retry/budget logic
 - All existing tests (agent, supervisor, pipeline, researcher, statute fetcher, vector store)
+
+## Known Limitations
+
+- Token budget enforcement was silently broken before this spec (zero counts were recorded for all calls). This spec fixes it. Any existing deployments relying on the budget not firing will see it start enforcing after this change.
+- If a future provider does not set `usage_metadata` on its `AIMessage`, token counting will silently return 0 for that provider. A `logger.debug` message is emitted in that case.

@@ -1,12 +1,10 @@
 """Tests for the get_llm() provider factory."""
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 
 def make_config(provider: str, api_key: str, model: str = ""):
-    os.environ.setdefault("ANTHROPIC_API_KEY", "placeholder")
     from irish_statute_assistant.config import Config
 
     key_map = {

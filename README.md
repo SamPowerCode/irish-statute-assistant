@@ -91,6 +91,37 @@ Leave `QDRANT_URL` empty (or unset) to use Qdrant in-memory mode, which is usefu
 
 ---
 
+## LLM providers
+
+The assistant supports four LLM providers, selected via `LLM_PROVIDER`:
+
+| Provider | `LLM_PROVIDER` value | Default model | Required env var |
+|----------|---------------------|---------------|-----------------|
+| Anthropic (default) | `anthropic` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
+| OpenAI | `openai` | `gpt-4o` | `OPENAI_API_KEY` |
+| Google | `google` | `gemini-2.0-flash` | `GOOGLE_API_KEY` |
+| Groq | `groq` | `llama-3.3-70b-versatile` | `GROQ_API_KEY` |
+
+Set `MODEL_NAME` to override the default model for any provider.
+
+**Example: switch to OpenAI**
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+# MODEL_NAME=gpt-4o  # optional — gpt-4o is the default
+```
+
+**Example: switch to Groq**
+```env
+LLM_PROVIDER=groq
+GROQ_API_KEY=gsk_...
+MODEL_NAME=llama-3.1-8b-instant  # optional override
+```
+
+All providers support structured output (`.with_structured_output()`) which this system relies on. Use capable models (GPT-4+, Gemini 1.5+, Llama 70B+) — smaller models may produce unreliable structured output.
+
+---
+
 ## Project structure
 
 ```
@@ -130,8 +161,12 @@ All settings can be overridden in `.env`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | — | Required |
-| `MODEL_NAME` | `claude-sonnet-4-6` | Claude model to use |
+| `ANTHROPIC_API_KEY` | — | Required when `LLM_PROVIDER=anthropic` (default) |
+| `MODEL_NAME` | `claude-sonnet-4-6` | Model to use (defaults per provider if not set) |
+| `LLM_PROVIDER` | `anthropic` | LLM backend: `anthropic`, `openai`, `google`, or `groq` |
+| `OPENAI_API_KEY` | `` | Required when `LLM_PROVIDER=openai` |
+| `GOOGLE_API_KEY` | `` | Required when `LLM_PROVIDER=google` |
+| `GROQ_API_KEY` | `` | Required when `LLM_PROVIDER=groq` |
 | `EVALUATOR_PASS_THRESHOLD` | `0.7` | Minimum score to accept an answer |
 | `MAX_REFINEMENT_ROUNDS` | `2` | Max retry attempts on low-scoring answers |
 | `MAX_RETRIES` | `3` | Retry attempts for transient/validation errors |

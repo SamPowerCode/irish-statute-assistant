@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -14,22 +14,40 @@ class ResearcherOutput(BaseModel):
     acts: list[ActSection] = Field(min_length=1)
 
 
-class AnalystOutput(BaseModel):
-    key_clauses: list[str]
+class KeyClause(BaseModel):
+    text: str
+    act: str
+    section: str
+
+
+class AnalystLLMOutput(BaseModel):
+    """Schema fed to the LLM via with_structured_output — no supervisor-side fields."""
+    key_clauses: list[KeyClause]
     gaps: list[str]
     confidence: float = Field(ge=0.0, le=1.0)
+
+
+class AnalystOutput(AnalystLLMOutput):
+    """Full analyst context passed through the pipeline.
+
+    advocate_challenges is populated by the Supervisor after the DevilsAdvocateAgent
+    runs — it is intentionally absent from AnalystLLMOutput so the LLM never sees it.
+    """
+    advocate_challenges: list[str] = []
 
 
 class DetailedBreakdown(BaseModel):
     summary: str
     relevant_acts: list[str]
-    key_clauses: list[str]
+    key_clauses: list[KeyClause]
     caveats: list[str]
 
 
 class WriterOutput(BaseModel):
     short_answer: str
     detailed_breakdown: DetailedBreakdown
+    warnings: list[str] = []
+    analyst_confidence: float = 1.0
 
     @field_validator("short_answer")
     @classmethod
@@ -46,6 +64,16 @@ class EvaluatorOutput(BaseModel):
     pass_: bool = Field(alias="pass")
 
     model_config = {"populate_by_name": True}
+
+
+class AdvocateOutput(BaseModel):
+    challenges: list[str] = Field(default_factory=list, max_length=5)
+    severity: Literal["minor", "major"]
+
+
+class GroundingOutput(BaseModel):
+    ungrounded_claims: list[str]
+    grounding_passed: bool
 
 
 class ClarifierOutput(BaseModel):

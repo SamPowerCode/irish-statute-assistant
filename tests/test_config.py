@@ -6,8 +6,8 @@ from irish_statute_assistant.llm import _DEFAULT_MODELS
 
 
 def test_config_loads_defaults():
-    config = Config(anthropic_api_key="test-key")
-    assert config.model_name == "claude-sonnet-4-6"
+    config = Config(anthropic_api_key="test-key", _env_file=None)
+    assert config.model_name == _DEFAULT_MODELS["anthropic"]
     assert config.evaluator_pass_threshold == 0.7
     assert config.max_refinement_rounds == 2
     assert config.max_retries == 3
@@ -23,7 +23,7 @@ def test_config_requires_api_key(monkeypatch):
 
 def test_config_chroma_defaults(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
-    config = Config()
+    config = Config(_env_file=None)
     assert config.chroma_db_path == "./data/chroma"
     assert config.embedding_model == "all-MiniLM-L6-v2"
     assert config.acts_per_category == 5

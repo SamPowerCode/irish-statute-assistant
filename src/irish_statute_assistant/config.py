@@ -12,6 +12,11 @@ _PROVIDER_KEY_MAP = {
     "groq":      "groq_api_key",
 }
 
+assert set(_PROVIDER_KEY_MAP) == set(_DEFAULT_MODELS), (
+    "Provider maps out of sync — update both _PROVIDER_KEY_MAP in config.py "
+    "and _DEFAULT_MODELS in llm.py when adding providers"
+)
+
 
 class Config(BaseSettings):
     anthropic_api_key: str = ""

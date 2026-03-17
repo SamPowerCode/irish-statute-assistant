@@ -1,6 +1,7 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
+from irish_statute_assistant.agents.base_agent import BaseAgent
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.models.schemas import AnalystOutput, ResearcherOutput
 
@@ -25,7 +26,7 @@ Retrieved statute sections:
 """
 
 
-class AnalystAgent:
+class AnalystAgent(BaseAgent):
     def __init__(self, config: Config) -> None:
         llm = ChatAnthropic(
             model=config.model_name,
@@ -41,7 +42,7 @@ class AnalystAgent:
     def run(self, query: str, research: ResearcherOutput, evaluator_flags: list[str]) -> AnalystOutput:
         statute_text = self._format_research(research)
         flags_text = "\n".join(evaluator_flags) if evaluator_flags else "None"
-        return self._chain.invoke({
+        return self._invoke_chain(self._chain, {
             "query": query,
             "statute_text": statute_text,
             "evaluator_flags": flags_text,

@@ -2,22 +2,23 @@ from __future__ import annotations
 
 import logging
 
+from irish_statute_assistant.agents.base_agent import BaseAgent
 from irish_statute_assistant.config import Config
+from irish_statute_assistant.exceptions import StatuteNotFoundError
 from irish_statute_assistant.models.schemas import ActSection, ResearcherOutput
 from irish_statute_assistant.tools.session_cache import SessionCache
-from irish_statute_assistant.tools.statute_fetcher import fetch_act_sections, search_statutes
-from irish_statute_assistant.tools.vector_store import VectorStore
+from irish_statute_assistant.tools.statute_fetcher import StatuteFetcher
+from irish_statute_assistant.tools.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 
 
-class ResearcherAgent:
-    def __init__(self, config: Config, cache: SessionCache) -> None:
+class ResearcherAgent(BaseAgent):
+    def __init__(self, config: Config, cache: SessionCache, fetcher: StatuteFetcher) -> None:
         self._config = config
         self._cache = cache
-        self._search = search_statutes
-        self._fetch = fetch_act_sections
-        self._vector_store = VectorStore(config)
+        self._fetcher = fetcher
+        self._vector_store = get_vector_store(config)
 
     def run(self, query: str) -> ResearcherOutput:
         if self._vector_store.is_populated():
@@ -31,7 +32,7 @@ class ResearcherAgent:
     def _run_vector(self, query: str) -> ResearcherOutput:
         results = self._vector_store.search(query, top_k=10)
         if not results:
-            raise ValueError(f"No Acts found for query: {query!r}")
+            raise StatuteNotFoundError(f"No Acts found for query: {query!r}")
 
         grouped: dict[str, list[dict]] = {}
         for r in results:
@@ -49,13 +50,13 @@ class ResearcherAgent:
         return ResearcherOutput(acts=acts)
 
     def _run_live(self, query: str) -> ResearcherOutput:
-        results = self._search(query)
+        results = self._fetcher.search(query)
         if not results:
-            raise ValueError(f"No Acts found for query: {query!r}")
+            raise StatuteNotFoundError(f"No Acts found for query: {query!r}")
 
         acts = []
         for result in results:
-            sections = self._fetch(result["url"], self._cache)
+            sections = self._fetcher.fetch(result["url"], self._cache)
             acts.append(ActSection(
                 title=result["title"],
                 url=result["url"],

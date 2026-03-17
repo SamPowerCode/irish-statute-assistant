@@ -12,7 +12,7 @@ import time
 
 import httpx
 from bs4 import BeautifulSoup
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import Retrying, stop_after_attempt, wait_exponential
 
 from irish_statute_assistant.tools.session_cache import SessionCache
 
@@ -30,54 +30,64 @@ SOLR_SEARCH_URL = f"{BASE_URL}/solr/all_leg_title/select"
 # <div class="section"> elements in the real site HTML.
 SECTION_SELECTOR = "div#act table.t1"
 
-RATE_LIMIT_DELAY = 1.0
 
+class StatuteFetcher:
+    def __init__(self, rate_limit_delay: float, max_retries: int) -> None:
+        self._delay = rate_limit_delay
+        self._max_retries = max_retries
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-def search_statutes(query: str) -> list[dict]:
-    """Search irishstatutebook.ie and return up to 5 Act results as {title, url}.
+    def search(self, query: str) -> list[dict]:
+        """Search irishstatutebook.ie and return up to 5 Act results as {title, url}.
 
-    Uses the Solr JSON API directly.  Results are filtered to type == 'act'
-    so that Statutory Instruments are excluded.
-    """
-    time.sleep(RATE_LIMIT_DELAY)
-    params = {"q": query, "wt": "json"}
-    response = httpx.get(SOLR_SEARCH_URL, params=params, timeout=30)
-    response.raise_for_status()
+        Uses the Solr JSON API directly.  Results are filtered to type == 'act'
+        so that Statutory Instruments are excluded.
+        """
+        for attempt in Retrying(
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+        ):
+            with attempt:
+                time.sleep(self._delay)
+                params = {"q": query, "wt": "json"}
+                response = httpx.get(SOLR_SEARCH_URL, params=params, timeout=30)
+                response.raise_for_status()
 
-    data = response.json()
-    docs = data.get("response", {}).get("docs", [])
+                data = response.json()
+                docs = data.get("response", {}).get("docs", [])
 
-    results = []
-    for doc in docs:
-        if doc.get("type") != "act":
-            continue
-        link = doc.get("link", "")
-        url = link if link.startswith("http") else BASE_URL + link
-        results.append({"title": doc.get("title", ""), "url": url})
-        if len(results) >= 5:
-            break
+                results = []
+                for doc in docs:
+                    if doc.get("type") != "act":
+                        continue
+                    link = doc.get("link", "")
+                    url = link if link.startswith("http") else BASE_URL + link
+                    results.append({"title": doc.get("title", ""), "url": url})
+                    if len(results) >= 5:
+                        break
 
-    return results
+                return results
 
+    def fetch(self, url: str, cache: SessionCache) -> list[str]:
+        """Fetch an Act page and return up to 10 section texts. Uses cache."""
+        cached = cache.get(url)
+        if cached is not None:
+            return cached
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-def fetch_act_sections(url: str, cache: SessionCache) -> list[str]:
-    """Fetch an Act page and return up to 10 section texts. Uses cache."""
-    cached = cache.get(url)
-    if cached is not None:
-        return cached
+        for attempt in Retrying(
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+        ):
+            with attempt:
+                time.sleep(self._delay)
+                response = httpx.get(url, timeout=30, follow_redirects=True)
+                response.raise_for_status()
 
-    time.sleep(RATE_LIMIT_DELAY)
-    response = httpx.get(url, timeout=30)
-    response.raise_for_status()
+                soup = BeautifulSoup(response.text, "html.parser")
+                sections = []
+                for table in soup.select(SECTION_SELECTOR)[:10]:
+                    text = table.get_text(strip=True)
+                    if text:
+                        sections.append(text[:2000])
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    sections = []
-    for table in soup.select(SECTION_SELECTOR)[:10]:
-        text = table.get_text(strip=True)
-        if text:
-            sections.append(text[:2000])
-
-    cache.set(url, sections)
-    return sections
+                cache.set(url, sections)
+                return sections

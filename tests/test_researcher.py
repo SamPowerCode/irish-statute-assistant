@@ -1,8 +1,10 @@
 import logging
 from unittest.mock import MagicMock, patch
 from irish_statute_assistant.agents.researcher import ResearcherAgent
+from irish_statute_assistant.exceptions import StatuteNotFoundError
 from irish_statute_assistant.models.schemas import ResearcherOutput, ActSection
 from irish_statute_assistant.tools.session_cache import SessionCache
+from irish_statute_assistant.tools.statute_fetcher import StatuteFetcher
 
 
 def make_researcher_with_mocks(search_results, sections_per_act):
@@ -16,10 +18,10 @@ def make_researcher_with_mocks(search_results, sections_per_act):
     mock_store.is_populated.return_value = False
     agent._vector_store = mock_store
 
-    mock_search = MagicMock(return_value=search_results)
-    mock_fetch = MagicMock(return_value=sections_per_act)
-    agent._search = mock_search
-    agent._fetch = mock_fetch
+    mock_fetcher = MagicMock(spec=StatuteFetcher)
+    mock_fetcher.search.return_value = search_results
+    mock_fetcher.fetch.return_value = sections_per_act
+    agent._fetcher = mock_fetcher
     return agent
 
 
@@ -46,7 +48,7 @@ def test_researcher_includes_title_and_url():
 def test_researcher_raises_on_no_results():
     agent = make_researcher_with_mocks(search_results=[], sections_per_act=[])
     import pytest
-    with pytest.raises(ValueError, match="No Acts found"):
+    with pytest.raises(StatuteNotFoundError, match="No Acts found"):
         agent.run(query="completely unknown legal topic xyz")
 
 
@@ -57,16 +59,17 @@ def make_researcher_with_vector_store(mock_store, search_results=None, sections_
     import os
     os.environ.setdefault("ANTHROPIC_API_KEY", "test")
 
-    with patch("irish_statute_assistant.agents.researcher.VectorStore", return_value=mock_store):
+    fetcher = MagicMock(spec=StatuteFetcher)
+    if search_results is not None:
+        fetcher.search.return_value = search_results
+    if sections_per_act is not None:
+        fetcher.fetch.return_value = sections_per_act
+
+    with patch("irish_statute_assistant.agents.researcher.get_vector_store", return_value=mock_store):
         config = Config()
         cache = SessionCache()
-        agent = ResearcherAgent(config, cache)
+        agent = ResearcherAgent(config, cache, fetcher)
 
-    # Also wire live-fetch mocks for fallback tests
-    if search_results is not None:
-        agent._search = MagicMock(return_value=search_results)
-    if sections_per_act is not None:
-        agent._fetch = MagicMock(return_value=sections_per_act)
     return agent
 
 
@@ -111,7 +114,7 @@ def test_researcher_raises_on_empty_vector_results():
     mock_store.search.return_value = []
     agent = make_researcher_with_vector_store(mock_store)
     import pytest
-    with pytest.raises(ValueError, match="No Acts found"):
+    with pytest.raises(StatuteNotFoundError, match="No Acts found"):
         agent.run("unknown topic xyz")
 
 

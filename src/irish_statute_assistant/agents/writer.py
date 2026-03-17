@@ -1,6 +1,7 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
+from irish_statute_assistant.agents.base_agent import BaseAgent
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.models.schemas import AnalystOutput, ResearcherOutput, WriterOutput
 
@@ -32,7 +33,7 @@ Acts researched:
 """
 
 
-class WriterAgent:
+class WriterAgent(BaseAgent):
     def __init__(self, config: Config) -> None:
         llm = ChatAnthropic(
             model=config.model_name,
@@ -54,7 +55,7 @@ class WriterAgent:
     ) -> WriterOutput:
         flags_text = "\n".join(evaluator_flags) if evaluator_flags else "None"
         act_titles = "\n".join(act.title for act in research.acts)
-        return self._chain.invoke({
+        return self._invoke_chain(self._chain, {
             "query": query,
             "key_clauses": "\n".join(analysis.key_clauses),
             "gaps": "\n".join(analysis.gaps) if analysis.gaps else "None",

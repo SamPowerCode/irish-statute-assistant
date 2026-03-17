@@ -57,3 +57,11 @@ class VectorStore:
             }
             for doc in docs
         ]
+
+
+def get_vector_store(config: Config, embeddings=None) -> VectorStore:
+    """Factory — returns the backend selected by config.vector_store_backend."""
+    if config.vector_store_backend == "qdrant":
+        from irish_statute_assistant.tools.qdrant_vector_store import QdrantVectorStore
+        return QdrantVectorStore(config, embeddings=embeddings)
+    return VectorStore(config, embeddings=embeddings)

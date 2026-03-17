@@ -4,10 +4,14 @@ from irish_statute_assistant.models.schemas import WriterOutput, DetailedBreakdo
 
 
 def make_pipeline(supervisor_returns):
+    from unittest.mock import MagicMock
+    from irish_statute_assistant.memory.session_memory import SessionMemory
     p = Pipeline.__new__(Pipeline)
+    mock_config = MagicMock()
+    mock_config.token_budget_per_query = 4000
+    p._config = mock_config
     p._supervisor = MagicMock()
     p._supervisor.run = MagicMock(return_value=supervisor_returns)
-    from irish_statute_assistant.memory.session_memory import SessionMemory
     p._memory = SessionMemory()
     return p
 

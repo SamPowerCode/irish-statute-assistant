@@ -17,7 +17,7 @@ def test_config_loads_defaults():
 def test_config_requires_api_key(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(ValidationError):
-        Config()
+        Config(_env_file=None)  # ignore .env so only env vars are checked
 
 
 def test_config_chroma_defaults(monkeypatch):

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import sys
 from irish_statute_assistant.config import Config
+from irish_statute_assistant.exceptions import (
+    BudgetExceededError,
+    StatuteNotFoundError,
+    ValidationRepairError,
+)
 from irish_statute_assistant.models.schemas import WriterOutput
 from irish_statute_assistant.pipeline import Pipeline
 
@@ -55,6 +60,12 @@ def main() -> None:
         try:
             result = pipeline.query(user_input)
             print(format_output(result))
+        except StatuteNotFoundError:
+            print("\nNo relevant statutes were found for your question. Please try a different topic.\n")
+        except BudgetExceededError:
+            print("\nThis query used too many tokens. Please try a shorter or more specific question.\n")
+        except ValidationRepairError:
+            print("\nThe assistant could not produce a valid response after several attempts. Please try rephrasing.\n")
         except Exception as e:
             print(f"\nSomething went wrong: {e}\nPlease try again or rephrase your question.\n")
 

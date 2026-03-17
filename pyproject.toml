@@ -21,6 +21,7 @@ dependencies = [
     "langchain-chroma>=0.1",
     "langchain-huggingface>=0.1",
     "sentence-transformers>=3.0",
+    "qdrant-client>=1.7",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -9,7 +11,11 @@ class Config(BaseSettings):
     max_retries: int = 3
     token_budget_per_query: int = 4000
     rate_limit_delay: float = 1.0
+    # Vector store
+    vector_store_backend: Literal["chroma", "qdrant"] = "chroma"
     chroma_db_path: str = "./data/chroma"
+    qdrant_url: str = ""        # leave empty to use in-memory Qdrant (dev/test)
+    qdrant_api_key: str = ""    # required for Qdrant Cloud
     embedding_model: str = "all-MiniLM-L6-v2"
     index_categories: list[str] = [
         "employment", "housing", "family", "criminal", "contract",

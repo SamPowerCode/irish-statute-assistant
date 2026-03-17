@@ -8,10 +8,6 @@ def run_indexer(search_side_effect, fetch_side_effect, acts_per_category=5,
     """Helper: runs indexer.main() with mocked dependencies.
 
     Returns (sections_passed_to_add_sections, mock_store).
-
-    Uses module-level import + targeted patches so mock bindings survive the
-    call (importlib.reload would re-execute the module's imports and overwrite
-    the mocks).
     """
     if index_categories is None:
         index_categories = ["employment", "housing"]
@@ -27,10 +23,15 @@ def run_indexer(search_side_effect, fetch_side_effect, acts_per_category=5,
     mock_config = MagicMock()
     mock_config.acts_per_category = acts_per_category
     mock_config.index_categories = index_categories
+    mock_config.rate_limit_delay = 0.0
+    mock_config.max_retries = 1
 
-    with patch("irish_statute_assistant.indexer.search_statutes", side_effect=search_side_effect), \
-         patch("irish_statute_assistant.indexer.fetch_act_sections", side_effect=fetch_side_effect), \
-         patch("irish_statute_assistant.indexer.VectorStore", return_value=mock_store), \
+    mock_fetcher = MagicMock()
+    mock_fetcher.search.side_effect = search_side_effect
+    mock_fetcher.fetch.side_effect = fetch_side_effect
+
+    with patch("irish_statute_assistant.indexer.StatuteFetcher", return_value=mock_fetcher), \
+         patch("irish_statute_assistant.indexer.get_vector_store", return_value=mock_store), \
          patch("irish_statute_assistant.indexer.Config", return_value=mock_config):
         indexer_module.main()
 

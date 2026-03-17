@@ -8,21 +8,25 @@ from __future__ import annotations
 
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.tools.session_cache import SessionCache
-from irish_statute_assistant.tools.statute_fetcher import fetch_act_sections, search_statutes
-from irish_statute_assistant.tools.vector_store import VectorStore
+from irish_statute_assistant.tools.statute_fetcher import StatuteFetcher
+from irish_statute_assistant.tools.vector_store import get_vector_store
 
 
 def main() -> None:
     config = Config()
-    store = VectorStore(config)
+    store = get_vector_store(config)
     cache = SessionCache()
+    fetcher = StatuteFetcher(
+        rate_limit_delay=config.rate_limit_delay,
+        max_retries=config.max_retries,
+    )
 
     seen_urls: set[str] = set()
     all_sections: list[dict] = []
     total_acts = 0
 
     for category in config.index_categories:
-        results = search_statutes(category)
+        results = fetcher.search(category)
         collected = 0
         for result in results:
             if collected >= config.acts_per_category:
@@ -34,7 +38,7 @@ def main() -> None:
             collected += 1
             total_acts += 1
 
-            sections = fetch_act_sections(url, cache)
+            sections = fetcher.fetch(url, cache)
             for i, text in enumerate(sections):
                 all_sections.append({
                     "page_content": text,

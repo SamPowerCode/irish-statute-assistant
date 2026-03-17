@@ -16,21 +16,27 @@ def make_supervisor(
 ):
     sup = Supervisor.__new__(Supervisor)
     sup._max_refinements = 2
+    sup._max_retries = 3
 
     sup._clarifier = MagicMock()
     sup._clarifier.run = MagicMock(return_value=clarifier_output)
+    sup._clarifier.last_token_count = 0
 
     sup._researcher = MagicMock()
     sup._researcher.run = MagicMock(return_value=researcher_output)
+    sup._researcher.last_token_count = 0
 
     sup._analyst = MagicMock()
     sup._analyst.run = MagicMock(return_value=analyst_output)
+    sup._analyst.last_token_count = 0
 
     sup._writer = MagicMock()
     sup._writer.run = MagicMock(return_value=writer_output)
+    sup._writer.last_token_count = 0
 
     sup._evaluator = MagicMock()
     sup._evaluator.run = MagicMock(return_value=evaluator_output)
+    sup._evaluator.last_token_count = 0
 
     return sup
 

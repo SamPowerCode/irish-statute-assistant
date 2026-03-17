@@ -30,6 +30,9 @@ class Config(BaseSettings):
     max_retries: int = 3
     temperature: float = 0.0
     token_budget_per_query: int = 20000
+    conversation_history_limit: int = 20
+    conversations_db_path: str = "~/.irish_statute_assistant/conversations.db"
+    preferences_db_path: str = "~/.irish_statute_assistant/preferences.db"
     rate_limit_delay: float = 1.0
     # Vector store
     vector_store_backend: Literal["chroma", "qdrant"] = "chroma"

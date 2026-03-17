@@ -27,12 +27,22 @@ def format_output(result: WriterOutput | str) -> str:
         *[f"  - {act}" for act in bd.relevant_acts],
         "",
         "Key points:",
-        *[f"  - {clause}" for clause in bd.key_clauses],
+        *[f"  - {kc.text} ({kc.act}, {kc.section})" for kc in bd.key_clauses],
         "",
         "Things to be aware of:",
         *[f"  - {caveat}" for caveat in bd.caveats],
         "",
     ]
+
+    if result.analyst_confidence < 0.5:
+        lines.append("Note: confidence in statute coverage was low for this query.")
+        lines.append("")
+
+    if result.warnings:
+        lines.append("--- Grounding warnings ---")
+        lines.extend(f"  - {w}" for w in result.warnings)
+        lines.append("")
+
     return "\n".join(lines)
 
 

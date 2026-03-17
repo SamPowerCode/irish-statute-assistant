@@ -5,7 +5,8 @@ import logging
 from irish_statute_assistant.agents.supervisor import Supervisor
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.context import QueryContext
-from irish_statute_assistant.memory.session_memory import SessionMemory
+from irish_statute_assistant.memory.conversation_store import ConversationStore
+from irish_statute_assistant.memory.user_preference_store import UserPreferenceStore
 from irish_statute_assistant.models.schemas import WriterOutput
 
 logger = logging.getLogger(__name__)
@@ -14,35 +15,24 @@ logger = logging.getLogger(__name__)
 class Pipeline:
     def __init__(self, config: Config) -> None:
         self._config = config
-        self._supervisor = Supervisor(config)
-        self._memory = SessionMemory()
+        self._memory = ConversationStore(
+            db_path=config.conversations_db_path,
+            history_limit=config.conversation_history_limit,
+        )
+        self._preferences = UserPreferenceStore(db_path=config.preferences_db_path)
+        self._supervisor = Supervisor(config, memory=self._memory, preferences=self._preferences)
 
     def query(self, user_query: str) -> WriterOutput | str:
         """
         Submit a query. Returns:
-          - str: a clarifying question (memory not updated)
-          - WriterOutput: the final answer (memory updated)
+          - str: a clarifying question (supervisor writes to memory)
+          - WriterOutput: the final answer (supervisor writes to memory)
         """
-        history = self._memory.format_for_prompt()
         context = QueryContext(budget=self._config.token_budget_per_query)
-        result = self._supervisor.run(query=user_query, history=history, context=context)
+        result = self._supervisor.run(query=user_query, context=context)
         logger.info(
-            "Query %s used %d/%d tokens",
-            context.query_id,
+            "Query used %d/%d tokens",
             context.tokens_used,
             context.budget,
         )
-
-        if isinstance(result, WriterOutput):
-            self._memory.add_exchange(
-                user=user_query,
-                assistant=result.short_answer,
-            )
-        else:
-            # Clarifying question — store in memory so the next query has context
-            self._memory.add_exchange(
-                user=user_query,
-                assistant=result,
-            )
-
         return result

@@ -13,12 +13,16 @@ Rules:
   explaining to a friend.
 - detailed_breakdown.summary: 2-3 sentences summarising the legal position.
 - detailed_breakdown.relevant_acts: list the Acts by name (e.g. "Statute of Limitations Act 1957").
-- detailed_breakdown.key_clauses: the specific rules that answer the question, in plain English.
+- detailed_breakdown.key_clauses: the specific rules that answer the question. For each include
+  the text, the act name, and the section reference.
 - detailed_breakdown.caveats: important exceptions, edge cases, or "it depends" situations.
 - Always include at least one caveat reminding the user to seek professional legal advice.
 - Never make up law. Only use what the analyst found.
 
 If there are evaluator flags, address them: {evaluator_flags}
+
+Challenges raised by the devil's advocate (address each in caveats):
+{advocate_challenges}
 """
 
 HUMAN_PROMPT = """User question: {query}
@@ -50,12 +54,21 @@ class WriterAgent(BaseAgent):
         evaluator_flags: list[str],
     ) -> WriterOutput:
         flags_text = "\n".join(evaluator_flags) if evaluator_flags else "None"
+        challenges_text = (
+            "\n".join(f"- {c}" for c in analysis.advocate_challenges)
+            if analysis.advocate_challenges
+            else "None"
+        )
         act_titles = "\n".join(act.title for act in research.acts)
+        key_clauses_text = "\n".join(
+            f"{kc.text} ({kc.act}, {kc.section})" for kc in analysis.key_clauses
+        )
         return self._invoke_chain(self._chain, {
             "query": query,
-            "key_clauses": "\n".join(analysis.key_clauses),
+            "key_clauses": key_clauses_text,
             "gaps": "\n".join(analysis.gaps) if analysis.gaps else "None",
             "confidence": analysis.confidence,
             "act_titles": act_titles,
             "evaluator_flags": flags_text,
+            "advocate_challenges": challenges_text,
         })

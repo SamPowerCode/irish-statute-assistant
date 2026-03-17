@@ -1,12 +1,14 @@
 from unittest.mock import MagicMock
 from irish_statute_assistant.agents.analyst import AnalystAgent
-from irish_statute_assistant.models.schemas import AnalystOutput, ResearcherOutput, ActSection
+from irish_statute_assistant.models.schemas import (
+    AnalystLLMOutput, KeyClause, ResearcherOutput, ActSection
+)
 
 
 def make_analyst(key_clauses, gaps, confidence):
     agent = AnalystAgent.__new__(AnalystAgent)
     mock_chain = MagicMock()
-    mock_chain.invoke = MagicMock(return_value=AnalystOutput(
+    mock_chain.invoke = MagicMock(return_value=AnalystLLMOutput(
         key_clauses=key_clauses, gaps=gaps, confidence=confidence
     ))
     agent._chain = mock_chain
@@ -23,21 +25,25 @@ def sample_research():
     ])
 
 
-def test_analyst_returns_analyst_output():
-    agent = make_analyst(["Bring action within 6 years"], [], 0.9)
-    result = agent.run(query="limitation period", research=sample_research(), evaluator_flags=[])
-    assert isinstance(result, AnalystOutput)
+def sample_key_clause():
+    return KeyClause(text="Bring action within 6 years", act="Statute of Limitations Act 1957", section="s.11")
+
+
+def test_analyst_returns_analyst_llm_output():
+    agent = make_analyst([sample_key_clause()], [], 0.9)
+    result = agent.run(query="limitation period", research=sample_research())
+    assert isinstance(result, AnalystLLMOutput)
     assert result.confidence == 0.9
-
-
-def test_analyst_passes_evaluator_flags():
-    agent = make_analyst(["Clause"], [], 0.8)
-    agent.run(query="Q", research=sample_research(), evaluator_flags=["Missing citation"])
-    call_args = agent._chain.invoke.call_args[0][0]
-    assert "Missing citation" in call_args["evaluator_flags"]
 
 
 def test_analyst_confidence_in_valid_range():
     agent = make_analyst([], [], 0.5)
-    result = agent.run(query="Q", research=sample_research(), evaluator_flags=[])
+    result = agent.run(query="Q", research=sample_research())
     assert 0.0 <= result.confidence <= 1.0
+
+
+def test_analyst_run_does_not_accept_evaluator_flags():
+    """Analyst runs once before the loop; evaluator_flags no longer belong here."""
+    import inspect
+    sig = inspect.signature(AnalystAgent.run)
+    assert "evaluator_flags" not in sig.parameters

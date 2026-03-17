@@ -87,7 +87,8 @@ class Supervisor:
         if context:
             context.consume(self._analyst.last_token_count)
         analyst_output = AnalystOutput(
-            **llm_analyst_result.model_dump(), advocate_challenges=[]
+            **llm_analyst_result.model_dump(exclude={"advocate_challenges"}),
+            advocate_challenges=[],
         )
 
         # 4. Devil's advocate (initial run)

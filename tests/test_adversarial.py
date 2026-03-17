@@ -20,13 +20,13 @@ os.environ.setdefault("ANTHROPIC_API_KEY", "test")
 # ---------------------------------------------------------------------------
 
 def _make_writer_output():
-    from irish_statute_assistant.models.schemas import DetailedBreakdown, WriterOutput
+    from irish_statute_assistant.models.schemas import DetailedBreakdown, KeyClause, WriterOutput
     return WriterOutput(
         short_answer="This is a plain English answer.",
         detailed_breakdown=DetailedBreakdown(
             summary="Summary of the legal position.",
             relevant_acts=["Some Act 2000"],
-            key_clauses=["Key clause text."],
+            key_clauses=[KeyClause(text="Key clause text.", act="Some Act 2000", section="Section 1")],
             caveats=["Seek professional legal advice."],
         ),
     )
@@ -43,8 +43,12 @@ def _make_clarifier_output(needs_clarification: bool, question: str | None = Non
 
 
 def _make_analyst_output():
-    from irish_statute_assistant.models.schemas import AnalystOutput
-    return AnalystOutput(key_clauses=["Some clause"], gaps=[], confidence=0.9)
+    from irish_statute_assistant.models.schemas import AnalystOutput, KeyClause
+    return AnalystOutput(
+        key_clauses=[KeyClause(text="Some clause", act="Some Act 2000", section="Section 1")],
+        gaps=[],
+        confidence=0.9,
+    )
 
 
 def _make_researcher_output():
@@ -247,7 +251,7 @@ def test_statute_not_found_surfaces_correctly():
 
     with (
         patch("irish_statute_assistant.pipeline.Supervisor") as MockSupervisor,
-        patch("irish_statute_assistant.pipeline.SessionMemory"),
+        patch("irish_statute_assistant.pipeline.ConversationStore"),
     ):
         mock_supervisor = MagicMock()
         mock_supervisor.run.side_effect = StatuteNotFoundError("No Acts found for query: 'xyz'")

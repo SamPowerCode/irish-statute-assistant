@@ -28,6 +28,7 @@ def get_llm(config: Config, max_tokens: int) -> Any:
             model=config.model_name,
             api_key=config.openai_api_key,
             max_tokens=max_tokens,
+            temperature=config.temperature,
         )
     elif config.llm_provider == "google":
         # Google uses max_output_tokens, not max_tokens
@@ -36,6 +37,7 @@ def get_llm(config: Config, max_tokens: int) -> Any:
             model=config.model_name,
             google_api_key=config.google_api_key,
             max_output_tokens=max_tokens,
+            temperature=config.temperature,
         )
     elif config.llm_provider == "groq":
         from langchain_groq import ChatGroq
@@ -43,6 +45,7 @@ def get_llm(config: Config, max_tokens: int) -> Any:
             model=config.model_name,
             api_key=config.groq_api_key,
             max_tokens=max_tokens,
+            temperature=config.temperature,
         )
     else:  # anthropic (default)
         from langchain_anthropic import ChatAnthropic
@@ -50,4 +53,5 @@ def get_llm(config: Config, max_tokens: int) -> Any:
             model=config.model_name,
             api_key=config.anthropic_api_key,
             max_tokens=max_tokens,
+            temperature=config.temperature,
         )

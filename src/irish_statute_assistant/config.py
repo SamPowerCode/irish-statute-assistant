@@ -28,7 +28,8 @@ class Config(BaseSettings):
     evaluator_pass_threshold: float = 0.7
     max_refinement_rounds: int = 2
     max_retries: int = 3
-    token_budget_per_query: int = 4000
+    temperature: float = 0.0
+    token_budget_per_query: int = 20000
     rate_limit_delay: float = 1.0
     # Vector store
     vector_store_backend: Literal["chroma", "qdrant"] = "chroma"

@@ -43,9 +43,11 @@ def main() -> None:
     print("Irish Statute Research Assistant")
     print("Type your legal question, or 'quit' to exit.\n")
 
+    awaiting_clarification = False
     while True:
+        prompt = "Your clarification: " if awaiting_clarification else "Your question: "
         try:
-            user_input = input("Your question: ").strip()
+            user_input = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye.")
             sys.exit(0)
@@ -59,11 +61,12 @@ def main() -> None:
 
         try:
             result = pipeline.query(user_input)
+            awaiting_clarification = isinstance(result, str)
             print(format_output(result))
         except StatuteNotFoundError:
             print("\nNo relevant statutes were found for your question. Please try a different topic.\n")
         except BudgetExceededError:
-            print("\nThis query used too many tokens. Please try a shorter or more specific question.\n")
+            print("\nThis query exceeded the token budget. You can increase TOKEN_BUDGET_PER_QUERY in your .env file.\n")
         except ValidationRepairError:
             print("\nThe assistant could not produce a valid response after several attempts. Please try rephrasing.\n")
         except Exception as e:

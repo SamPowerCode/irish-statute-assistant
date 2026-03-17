@@ -38,5 +38,11 @@ class Pipeline:
                 user=user_query,
                 assistant=result.short_answer,
             )
+        else:
+            # Clarifying question — store in memory so the next query has context
+            self._memory.add_exchange(
+                user=user_query,
+                assistant=result,
+            )
 
         return result

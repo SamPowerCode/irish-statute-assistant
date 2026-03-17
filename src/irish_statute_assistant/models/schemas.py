@@ -15,9 +15,9 @@ class ResearcherOutput(BaseModel):
 
 
 class KeyClause(BaseModel):
-    text: str
-    act: str
-    section: str
+    text: str = Field(min_length=1)
+    act: str = Field(min_length=1)
+    section: str = Field(min_length=1)
 
 
 class AnalystLLMOutput(BaseModel):

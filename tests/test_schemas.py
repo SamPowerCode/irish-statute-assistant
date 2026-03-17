@@ -43,6 +43,14 @@ def test_key_clause_requires_section():
     with pytest.raises(ValidationError):
         KeyClause(text="something", act="Some Act")
 
+def test_key_clause_rejects_empty_act():
+    with pytest.raises(ValidationError):
+        KeyClause(text="something", act="", section="s.1")
+
+def test_key_clause_rejects_empty_section():
+    with pytest.raises(ValidationError):
+        KeyClause(text="something", act="Some Act", section="")
+
 
 # --- AnalystLLMOutput ---
 
@@ -164,6 +172,10 @@ def test_advocate_output_challenges_max_length_exceeded():
 def test_advocate_output_invalid_severity():
     with pytest.raises(ValidationError):
         AdvocateOutput(challenges=[], severity="critical")
+
+def test_advocate_output_challenges_at_max_length_accepted():
+    data = AdvocateOutput(challenges=["c1", "c2", "c3", "c4", "c5"], severity="minor")
+    assert len(data.challenges) == 5
 
 
 # --- GroundingOutput ---

@@ -47,7 +47,7 @@ class WriterOutput(BaseModel):
     short_answer: str
     detailed_breakdown: DetailedBreakdown
     warnings: list[str] = []
-    analyst_confidence: float = 1.0
+    analyst_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
 
     @field_validator("short_answer")
     @classmethod

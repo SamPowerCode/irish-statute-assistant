@@ -10,6 +10,8 @@ from irish_statute_assistant.models.schemas import (
     WriterOutput,
     EvaluatorOutput,
     ClarifierOutput,
+    AdvocateOutput,
+    GroundingOutput,
 )
 
 
@@ -144,3 +146,34 @@ def test_clarifier_no_clarification_needed():
 def test_clarifier_question_required_when_needs_clarification_true():
     with pytest.raises(ValidationError):
         ClarifierOutput(needs_clarification=True, question=None)
+
+
+# --- AdvocateOutput ---
+
+def test_advocate_output_valid():
+    data = AdvocateOutput(challenges=["Challenge 1", "Challenge 2"], severity="minor")
+    assert len(data.challenges) == 2
+    assert data.severity == "minor"
+
+
+def test_advocate_output_challenges_max_length_exceeded():
+    with pytest.raises(ValidationError):
+        AdvocateOutput(challenges=["c1", "c2", "c3", "c4", "c5", "c6"], severity="major")
+
+
+def test_advocate_output_invalid_severity():
+    with pytest.raises(ValidationError):
+        AdvocateOutput(challenges=[], severity="critical")
+
+
+# --- GroundingOutput ---
+
+def test_grounding_output_valid():
+    data = GroundingOutput(ungrounded_claims=[], grounding_passed=True)
+    assert data.grounding_passed is True
+    assert data.ungrounded_claims == []
+
+
+def test_grounding_output_grounding_passed_false():
+    data = GroundingOutput(ungrounded_claims=["Claim A is unsupported"], grounding_passed=False)
+    assert data.grounding_passed is False

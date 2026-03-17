@@ -1,8 +1,8 @@
-from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
 from irish_statute_assistant.agents.base_agent import BaseAgent
 from irish_statute_assistant.config import Config
+from irish_statute_assistant.llm import get_llm
 from irish_statute_assistant.models.schemas import ClarifierOutput
 
 SYSTEM_PROMPT = """You are a helpful legal assistant intake agent. Your job is to decide
@@ -26,11 +26,7 @@ HUMAN_PROMPT = "User's question: {query}"
 
 class ClarifierAgent(BaseAgent):
     def __init__(self, config: Config) -> None:
-        llm = ChatAnthropic(
-            model=config.model_name,
-            api_key=config.anthropic_api_key,
-            max_tokens=256,
-        ).with_structured_output(ClarifierOutput)
+        llm = get_llm(config, max_tokens=256).with_structured_output(ClarifierOutput)
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("human", HUMAN_PROMPT),

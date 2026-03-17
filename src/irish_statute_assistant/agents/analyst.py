@@ -1,8 +1,8 @@
-from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
 from irish_statute_assistant.agents.base_agent import BaseAgent
 from irish_statute_assistant.config import Config
+from irish_statute_assistant.llm import get_llm
 from irish_statute_assistant.models.schemas import AnalystOutput, ResearcherOutput
 
 SYSTEM_PROMPT = """You are a legal analyst. You have been given raw Irish statute text and
@@ -28,11 +28,7 @@ Retrieved statute sections:
 
 class AnalystAgent(BaseAgent):
     def __init__(self, config: Config) -> None:
-        llm = ChatAnthropic(
-            model=config.model_name,
-            api_key=config.anthropic_api_key,
-            max_tokens=1024,
-        ).with_structured_output(AnalystOutput)
+        llm = get_llm(config, max_tokens=1024).with_structured_output(AnalystOutput)
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("human", HUMAN_PROMPT),

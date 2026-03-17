@@ -60,3 +60,42 @@ def test_conversation_store_creates_db_dir_on_first_use(tmp_path):
     store = ConversationStore(db_path=nested)
     store.add_exchange(user="x", assistant="y")
     assert os.path.exists(nested)
+
+
+from irish_statute_assistant.memory.user_preference_store import UserPreferenceStore
+
+
+def test_preference_store_set_and_get(tmp_path):
+    db = str(tmp_path / "prefs.db")
+    store = UserPreferenceStore(db_path=db)
+    store.set("language_level", "plain")
+    assert store.get("language_level") == "plain"
+
+
+def test_preference_store_default_when_missing(tmp_path):
+    db = str(tmp_path / "prefs.db")
+    store = UserPreferenceStore(db_path=db)
+    assert store.get("nonexistent", default="fallback") == "fallback"
+
+
+def test_preference_store_overwrite(tmp_path):
+    db = str(tmp_path / "prefs.db")
+    store = UserPreferenceStore(db_path=db)
+    store.set("verbosity", "brief")
+    store.set("verbosity", "detailed")
+    assert store.get("verbosity") == "detailed"
+
+
+def test_preference_store_all(tmp_path):
+    db = str(tmp_path / "prefs.db")
+    store = UserPreferenceStore(db_path=db)
+    store.set("user_type", "solicitor")
+    store.set("language_level", "technical")
+    prefs = store.all()
+    assert prefs == {"user_type": "solicitor", "language_level": "technical"}
+
+
+def test_preference_store_persists_across_instantiations(tmp_path):
+    db = str(tmp_path / "prefs.db")
+    UserPreferenceStore(db_path=db).set("user_type", "solicitor")
+    assert UserPreferenceStore(db_path=db).get("user_type") == "solicitor"

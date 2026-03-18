@@ -42,10 +42,14 @@ class Pipeline:
         self._supervisor = Supervisor(config, memory=self._memory, preferences=self._preferences)
 
     def query(self, user_query: str) -> WriterOutput | str:
-        """
-        Submit a query. Returns:
-          - str: a clarifying question (supervisor writes to memory)
-          - WriterOutput: the final answer (supervisor writes to memory)
+        """Submit a user query and return the assistant's response.
+
+        Args:
+            user_query: The user's legal question.
+
+        Returns:
+            A clarifying question string if the query is ambiguous,
+            or a WriterOutput with the final answer.
         """
         context = QueryContext(budget=self._config.token_budget_per_query)
         result = self._supervisor.run(query=user_query, context=context)

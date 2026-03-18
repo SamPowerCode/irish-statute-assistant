@@ -26,6 +26,16 @@ Retrieved statute sections:
 
 
 class AnalystAgent(BaseAgent):
+    """Interprets retrieved statute text and identifies key clauses.
+
+    Runs once per query, before the refinement loop. Returns AnalystLLMOutput
+    (without advocate_challenges) — the Supervisor wraps this into a full
+    AnalystOutput after the devil's advocate has run.
+
+    Args:
+        config: Application configuration.
+    """
+
     def __init__(self, config: Config) -> None:
         llm = get_llm(config, max_tokens=1024).with_structured_output(AnalystLLMOutput)
         prompt = ChatPromptTemplate.from_messages([
@@ -35,6 +45,16 @@ class AnalystAgent(BaseAgent):
         self._chain = prompt | llm
 
     def run(self, query: str, research: ResearcherOutput) -> AnalystLLMOutput:
+        """Analyse statute text and identify clauses relevant to the query.
+
+        Args:
+            query: The user's legal question.
+            research: Retrieved statute sections from ResearcherAgent.
+
+        Returns:
+            AnalystLLMOutput with key_clauses (each citing act and section),
+            gaps (things the statutes don't address), and a confidence score.
+        """
         statute_text = self._format_research(research)
         return self._invoke_chain(self._chain, {
             "query": query,

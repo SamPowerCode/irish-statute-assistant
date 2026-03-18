@@ -19,6 +19,16 @@ assert set(_PROVIDER_KEY_MAP) == set(_DEFAULT_MODELS), (
 
 
 class Config(BaseSettings):
+    """Application configuration loaded from environment variables or .env file.
+
+    All settings can be set via environment variables (upper-cased) or in a
+    .env file in the project root. See the configuration reference in the docs
+    for a full description of each setting.
+
+    Example:
+        LLM_PROVIDER=openai OPENAI_API_KEY=sk-... uv run python -m irish_statute_assistant.main
+    """
+
     anthropic_api_key: str = ""
     model_name: str = ""
     llm_provider: Literal["anthropic", "openai", "google", "groq"] = "anthropic"

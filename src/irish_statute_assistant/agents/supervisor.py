@@ -32,6 +32,20 @@ _PREFERENCE_PATTERNS: list[tuple[str, str, str]] = [
 
 
 class Supervisor:
+    """Orchestrates the full agent pipeline for a single query.
+
+    Runs agents in order: clarify → research → analyse → devil's advocate →
+    refinement loop (write → ground-check → evaluate). Owns all memory writes.
+    Applies a confidence gate that doubles the refinement rounds when analyst
+    confidence is low or the devil's advocate finds a major problem.
+    Detects and persists user preferences from query text and evaluator signals.
+
+    Args:
+        config: Application configuration.
+        memory: SQLite-backed conversation store.
+        preferences: SQLite-backed user preference store.
+    """
+
     def __init__(
         self,
         config: Config,
@@ -58,6 +72,17 @@ class Supervisor:
         self._evaluator = EvaluatorAgent(config)
 
     def run(self, query: str, context: QueryContext | None = None) -> WriterOutput | str:
+        """Process a single user query through the full pipeline.
+
+        Args:
+            query: The user's legal question.
+            context: Optional token budget tracker. If provided, raises
+                BudgetExceededError when the budget is exhausted.
+
+        Returns:
+            A clarifying question string if clarification is needed,
+            or a WriterOutput with the final answer.
+        """
         history = self._memory.format_for_prompt()
 
         # 1. Clarify

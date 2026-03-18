@@ -38,6 +38,17 @@ Acts researched:
 
 
 class WriterAgent(BaseAgent):
+    """Produces a plain-English answer from the analyst's findings.
+
+    Runs inside the refinement loop. Receives the analyst's key clauses
+    (with act and section citations), any devil's advocate challenges, and
+    any evaluator flags from a previous iteration. Must address all challenges
+    in the caveats section.
+
+    Args:
+        config: Application configuration.
+    """
+
     def __init__(self, config: Config) -> None:
         llm = get_llm(config, max_tokens=2048).with_structured_output(WriterOutput)
         prompt = ChatPromptTemplate.from_messages([
@@ -53,6 +64,18 @@ class WriterAgent(BaseAgent):
         research: ResearcherOutput,
         evaluator_flags: list[str],
     ) -> WriterOutput:
+        """Write a plain-English answer to the query.
+
+        Args:
+            query: The user's legal question.
+            analysis: Analyst output including key_clauses and advocate_challenges.
+            research: Retrieved statute sections.
+            evaluator_flags: Quality flags from the previous evaluation round,
+                or an empty list on the first attempt.
+
+        Returns:
+            WriterOutput with a short_answer (≤100 words) and a detailed_breakdown.
+        """
         flags_text = "\n".join(evaluator_flags) if evaluator_flags else "None"
         challenges_text = (
             "\n".join(f"- {c}" for c in analysis.advocate_challenges)

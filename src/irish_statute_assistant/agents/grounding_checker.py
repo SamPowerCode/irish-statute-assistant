@@ -31,6 +31,17 @@ Retrieved statute text:
 
 
 class GroundingCheckerAgent(BaseAgent):
+    """Verifies that the writer's key clauses are traceable to retrieved statute text.
+
+    Runs between the writer and the evaluator in the refinement loop. For each
+    KeyClause in the writer's output, checks whether the claim is directly
+    supported by the retrieved statute sections. Ungrounded claims are returned
+    as warnings; the evaluator penalises citation quality when grounding fails.
+
+    Args:
+        config: Application configuration.
+    """
+
     def __init__(self, config: Config) -> None:
         llm = get_llm(config, max_tokens=512).with_structured_output(GroundingOutput)
         prompt = ChatPromptTemplate.from_messages([
@@ -40,6 +51,16 @@ class GroundingCheckerAgent(BaseAgent):
         self._chain = prompt | llm
 
     def run(self, writer_output: WriterOutput, research: ResearcherOutput) -> GroundingOutput:
+        """Check each key clause against the retrieved statute text.
+
+        Args:
+            writer_output: The writer's answer including key_clauses to verify.
+            research: Retrieved statute sections used as the ground truth.
+
+        Returns:
+            GroundingOutput with ungrounded_claims (empty if all pass) and
+            grounding_passed=False if any claims could not be verified.
+        """
         bd = writer_output.detailed_breakdown
         key_clauses_text = "\n".join(
             f"- {kc.text} ({kc.act}, {kc.section})" for kc in bd.key_clauses

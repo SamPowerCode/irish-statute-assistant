@@ -28,6 +28,16 @@ HUMAN_PROMPT = "User's question: {query}"
 
 
 class ClarifierAgent(BaseAgent):
+    """Determines whether a query needs clarification before proceeding.
+
+    Runs first in the pipeline. If the query is ambiguous, returns a single
+    focused question for the user. Never asks about jurisdiction — the assistant
+    always assumes Irish law.
+
+    Args:
+        config: Application configuration.
+    """
+
     def __init__(self, config: Config) -> None:
         llm = get_llm(config, max_tokens=256).with_structured_output(ClarifierOutput)
         prompt = ChatPromptTemplate.from_messages([
@@ -37,4 +47,14 @@ class ClarifierAgent(BaseAgent):
         self._chain = prompt | llm
 
     def run(self, query: str, history: str) -> ClarifierOutput:
+        """Decide whether the query needs clarification.
+
+        Args:
+            query: The user's legal question.
+            history: Formatted prior conversation from ConversationStore.
+
+        Returns:
+            ClarifierOutput with needs_clarification=True and a question,
+            or needs_clarification=False to proceed.
+        """
         return self._invoke_chain(self._chain, {"query": query, "history": history})

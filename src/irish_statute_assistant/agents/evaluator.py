@@ -30,6 +30,17 @@ Caveats: {caveats}
 
 
 class EvaluatorAgent(BaseAgent):
+    """Scores the writer's output and decides whether to accept or retry.
+
+    Runs at the end of each refinement loop iteration. Scores on four criteria:
+    accuracy, completeness, citation quality, and plain English. If the overall
+    score falls below evaluator_pass_threshold, returns flags for the writer to
+    address in the next iteration.
+
+    Args:
+        config: Application configuration.
+    """
+
     def __init__(self, config: Config) -> None:
         self._threshold = config.evaluator_pass_threshold
         llm = get_llm(config, max_tokens=512).with_structured_output(EvaluatorOutput)
@@ -40,6 +51,18 @@ class EvaluatorAgent(BaseAgent):
         self._chain = prompt | llm
 
     def run(self, query: str, output: WriterOutput, grounding_passed: bool = True) -> EvaluatorOutput:
+        """Score the writer's output.
+
+        Args:
+            query: The user's legal question.
+            output: The writer's answer to evaluate.
+            grounding_passed: If False, caps the citation quality score at 0.4.
+                Set from GroundingCheckerAgent.grounding_passed.
+
+        Returns:
+            EvaluatorOutput with a score (0–1), flags for improvement, and
+            pass_=True if score >= evaluator_pass_threshold.
+        """
         bd = output.detailed_breakdown
         grounding_note = (
             "Note: the grounding checker found unverified claims in this output. "

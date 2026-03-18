@@ -14,6 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 class ResearcherAgent(BaseAgent):
+    """Retrieves relevant Irish statute sections for a query.
+
+    Searches the vector store (ChromaDB or Qdrant) first. Falls back to a
+    live HTTP fetch from irishstatutebook.ie if the store is empty or returns
+    no results. Rate-limited and retried automatically.
+
+    Args:
+        config: Application configuration.
+        cache: In-memory session cache to avoid duplicate fetches.
+        fetcher: HTTP statute fetcher with rate limiting.
+    """
+
     def __init__(self, config: Config, cache: SessionCache, fetcher: StatuteFetcher) -> None:
         self._config = config
         self._cache = cache
@@ -21,6 +33,17 @@ class ResearcherAgent(BaseAgent):
         self._vector_store = get_vector_store(config)
 
     def run(self, query: str) -> ResearcherOutput:
+        """Retrieve statute sections relevant to the query.
+
+        Args:
+            query: The user's legal question.
+
+        Returns:
+            ResearcherOutput containing a list of Acts with their sections.
+
+        Raises:
+            StatuteNotFoundError: If no relevant statutes are found.
+        """
         if self._vector_store.is_populated():
             return self._run_vector(query)
         logger.warning(

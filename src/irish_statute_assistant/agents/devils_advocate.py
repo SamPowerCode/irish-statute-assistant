@@ -40,6 +40,18 @@ Retrieved statute text:
 
 
 class DevilsAdvocateAgent(BaseAgent):
+    """Challenges the analyst's findings before the writer proceeds.
+
+    Runs after the analyst and before the refinement loop. In standard mode,
+    finds 1–3 weaknesses. In strict mode (used when confidence is low or on
+    refinement retries after a low-confidence trigger), finds up to 5
+    adversarial challenges. Challenges are injected into the writer's prompt
+    via AnalystOutput.advocate_challenges.
+
+    Args:
+        config: Application configuration.
+    """
+
     def __init__(self, config: Config) -> None:
         llm = get_llm(config, max_tokens=512).with_structured_output(AdvocateOutput)
         self._chain_standard = (
@@ -58,6 +70,19 @@ class DevilsAdvocateAgent(BaseAgent):
         research: ResearcherOutput,
         mode: Literal["standard", "strict"] = "standard",
     ) -> AdvocateOutput:
+        """Challenge the analyst's interpretation.
+
+        Args:
+            analyst_output: The analyst's findings including key clauses.
+            query: The user's legal question.
+            research: Retrieved statute sections.
+            mode: "standard" finds 1–3 challenges; "strict" finds up to 5.
+
+        Returns:
+            AdvocateOutput with a list of challenges (may be empty) and a
+            severity of "minor" or "major". severity="major" means the
+            analyst's conclusion could be substantially wrong.
+        """
         chain = self._chain_strict if mode == "strict" else self._chain_standard
         key_clauses_text = "\n".join(
             f"{kc.text} ({kc.act}, {kc.section})" for kc in analyst_output.key_clauses

@@ -13,6 +13,25 @@ logger = logging.getLogger(__name__)
 
 
 class Pipeline:
+    """Top-level entry point for submitting queries to the assistant.
+
+    Constructs the conversation store, preference store, and supervisor on
+    initialisation. Each call to query() is independent — the supervisor
+    owns all memory writes.
+
+    Args:
+        config: Application configuration.
+
+    Example:
+        config = Config()
+        pipeline = Pipeline(config)
+        result = pipeline.query("How long do I have to bring a personal injury claim?")
+        if isinstance(result, str):
+            print("Clarification needed:", result)
+        else:
+            print(result.short_answer)
+    """
+
     def __init__(self, config: Config) -> None:
         self._config = config
         self._memory = ConversationStore(

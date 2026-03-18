@@ -1,181 +1,93 @@
-# Irish Statute Research Assistant
+# Irish Statute Assistant
 
-A multi-agent AI system that answers natural language legal questions in plain English using Irish statute law from [irishstatutebook.ie](https://www.irishstatutebook.ie), retrieved via a vector store (ChromaDB locally or Qdrant Cloud).
+An AI assistant that answers plain-English questions about Irish law, powered by a
+multi-agent pipeline that retrieves, analyses, and verifies statute text from
+[irishstatutebook.ie](https://www.irishstatutebook.ie).
 
-Built with LangChain and Claude as a 7-week agentic AI capstone project (Gold level).
+**[Full documentation →](https://irish-statute-assistant.readthedocs.io)**
 
 ---
 
 ## How it works
 
-Six agents orchestrated by a Supervisor:
+Eight agents orchestrated by a Supervisor:
 
 | Agent | Role |
-|-------|------|
-| **Supervisor** | Routes queries, manages the refinement loop, enforces token budget |
-| **Clarifier** | Asks one focused question when a query is too vague |
-| **Legal Researcher** | Queries the vector store (built from irishstatutebook.ie), falls back to live HTTP fetch if the store is empty |
-| **Legal Analyst** | Interprets statute text, identifies key clauses, assigns a confidence score |
-| **Plain English Writer** | Produces a short answer (≤100 words) and a detailed breakdown |
-| **Evaluator** | Scores the output and triggers a refinement loop if quality falls below threshold |
+|---|---|
+| **Clarifier** | Asks one focused question when a query is ambiguous |
+| **Researcher** | Retrieves relevant Irish Acts from the vector store |
+| **Analyst** | Identifies key clauses, assigns act/section citations, scores confidence |
+| **Devil's Advocate** | Challenges the analyst's conclusions before the writer proceeds |
+| **Writer** | Produces a short answer (≤100 words) and a detailed breakdown |
+| **Grounding Checker** | Verifies every cited clause is traceable to retrieved statute text |
+| **Evaluator** | Scores quality and triggers a refinement loop if below threshold |
+| **Supervisor** | Orchestrates all agents, owns memory writes, detects user preferences |
 
-Session memory keeps the conversation coherent within a single run. The system asks a clarifying question when needed, and automatically retries with feedback when the Evaluator scores the answer too low.
+Conversation history and user preferences persist across sessions in SQLite.
+The assistant automatically retries with evaluator feedback when output quality
+falls below threshold.
 
 ### Reliability features
 
-- **Typed exception hierarchy** — `StatuteNotFoundError`, `BudgetExceededError`, `ValidationRepairError`, and others for precise error handling
-- **Validation retry** — agent calls that fail schema validation are retried up to `MAX_RETRIES` times before raising `ValidationRepairError`
-- **Token budget enforcement** — `QueryContext` tracks token usage across agents per query and raises `BudgetExceededError` if `TOKEN_BUDGET_PER_QUERY` is exceeded
-- **Config-wired rate limiting** — `RATE_LIMIT_DELAY` and `MAX_RETRIES` are injected into the statute fetcher at runtime
+- **Typed exception hierarchy** — `StatuteNotFoundError`, `BudgetExceededError`, `ValidationRepairError`
+- **Validation retry** — failed schema validations are retried up to `MAX_RETRIES` times
+- **Token budget** — `QueryContext` tracks usage per query and raises `BudgetExceededError` if exceeded
+- **Multi-provider** — Anthropic, OpenAI, Google, and Groq supported
 
 ---
 
-## Setup
+## Quick start
 
 **Requirements:** Python 3.10+, [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
 ```bash
+git clone <repo-url>
+cd langflow-learning-club
 uv sync
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+# Add your ANTHROPIC_API_KEY (or other provider key) to .env
 ```
 
-## Index statutes (one-time)
-
-Build the vector store before running the assistant:
+**Index statutes (one-time):**
 
 ```bash
 uv run python -m irish_statute_assistant.indexer
 ```
 
-This crawls irishstatutebook.ie by legal category, embeds the statute sections, and persists them to the configured vector store. Re-run to refresh the index.
-
-## Run
+**Run:**
 
 ```bash
 uv run python -m irish_statute_assistant.main
 ```
 
-## Test
+**Test:**
 
 ```bash
-uv run pytest tests/ -v
+uv run python -m pytest
 ```
 
 ---
 
 ## Vector store backends
 
-The assistant supports two vector store backends, selected via `VECTOR_STORE_BACKEND`:
-
-### ChromaDB (default — local)
-
-No extra setup needed. The index is persisted to `CHROMA_DB_PATH` on disk.
-
-```env
-VECTOR_STORE_BACKEND=chroma
-CHROMA_DB_PATH=./data/chroma
-```
-
-### Qdrant Cloud
-
-Sign up for a free cluster at [qdrant.io](https://qdrant.io), then add to `.env`:
-
-```env
-VECTOR_STORE_BACKEND=qdrant
-QDRANT_URL=https://your-cluster.qdrant.io
-QDRANT_API_KEY=your-api-key
-```
-
-Leave `QDRANT_URL` empty (or unset) to use Qdrant in-memory mode, which is useful for local development and testing without a running server.
-
----
-
-## LLM providers
-
-The assistant supports four LLM providers, selected via `LLM_PROVIDER`:
-
-| Provider | `LLM_PROVIDER` value | Default model | Required env var |
-|----------|---------------------|---------------|-----------------|
-| Anthropic (default) | `anthropic` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
-| OpenAI | `openai` | `gpt-4o` | `OPENAI_API_KEY` |
-| Google | `google` | `gemini-2.0-flash` | `GOOGLE_API_KEY` |
-| Groq | `groq` | `llama-3.3-70b-versatile` | `GROQ_API_KEY` |
-
-Set `MODEL_NAME` to override the default model for any provider.
-
-**Example: switch to OpenAI**
-```env
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-# MODEL_NAME=gpt-4o  # optional — gpt-4o is the default
-```
-
-**Example: switch to Groq**
-```env
-LLM_PROVIDER=groq
-GROQ_API_KEY=gsk_...
-MODEL_NAME=llama-3.1-8b-instant  # optional override
-```
-
-All providers support structured output (`.with_structured_output()`) which this system relies on. Use capable models (GPT-4+, Gemini 1.5+, Llama 70B+) — smaller models may produce unreliable structured output.
-
----
-
-## Project structure
-
-```
-src/irish_statute_assistant/
-  config.py          # Settings (API key, thresholds, rate limits, vector store)
-  pipeline.py        # Top-level entry point; creates QueryContext per query
-  main.py            # Interactive CLI with typed exception handling
-  exceptions.py      # Typed exception hierarchy (IrishStatuteError and subclasses)
-  context.py         # QueryContext — tracks token budget across a query
-  retry.py           # run_with_retry helper for validation error retries
-  agents/
-    base_agent.py    # BaseAgent with token-usage tracking (TokenUsageCallback)
-    supervisor.py    # Orchestration, refinement loop, budget/retry wiring
-    clarifier.py     # Query disambiguation
-    researcher.py    # Vector store search with live HTTP fallback
-    analyst.py       # Legal interpretation
-    writer.py        # Plain English output
-    evaluator.py     # Quality scoring
-  models/
-    schemas.py       # Pydantic models for all agent I/O
-  tools/
-    statute_fetcher.py       # StatuteFetcher class (Solr API + HTML, config-wired retries)
-    session_cache.py         # In-session URL cache
-    vector_store.py          # ChromaDB backend + get_vector_store() factory
-    qdrant_vector_store.py   # Qdrant backend (local or cloud)
-  memory/
-    session_memory.py    # Conversation history
-  indexer.py             # One-time script to build the vector store
-tests/               # 80 tests, all passing
-```
+| Backend | Setup | Best for |
+|---|---|---|
+| **ChromaDB** (default) | No extra setup — local files at `./data/chroma` | Development, local use |
+| **Qdrant** | Set `VECTOR_STORE_BACKEND=qdrant`, `QDRANT_URL`, `QDRANT_API_KEY` | Production, cloud deployment |
 
 ---
 
 ## Configuration
 
-All settings can be overridden in `.env`:
+Key settings (set in `.env` or as environment variables):
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | — | Required when `LLM_PROVIDER=anthropic` (default) |
-| `MODEL_NAME` | `claude-sonnet-4-6` | Model to use (defaults per provider if not set) |
-| `LLM_PROVIDER` | `anthropic` | LLM backend: `anthropic`, `openai`, `google`, or `groq` |
-| `OPENAI_API_KEY` | `` | Required when `LLM_PROVIDER=openai` |
-| `GOOGLE_API_KEY` | `` | Required when `LLM_PROVIDER=google` |
-| `GROQ_API_KEY` | `` | Required when `LLM_PROVIDER=groq` |
-| `EVALUATOR_PASS_THRESHOLD` | `0.7` | Minimum score to accept an answer |
-| `MAX_REFINEMENT_ROUNDS` | `2` | Max retry attempts on low-scoring answers |
-| `MAX_RETRIES` | `3` | Retry attempts for transient/validation errors |
-| `TOKEN_BUDGET_PER_QUERY` | `4000` | Token cap per query |
-| `RATE_LIMIT_DELAY` | `1.0` | Seconds between statute book requests |
-| `VECTOR_STORE_BACKEND` | `chroma` | Vector store backend: `chroma` or `qdrant` |
-| `CHROMA_DB_PATH` | `./data/chroma` | Disk path for the ChromaDB vector store |
-| `QDRANT_URL` | `` | Qdrant server URL (empty = in-memory) |
-| `QDRANT_API_KEY` | `` | Qdrant Cloud API key |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | sentence-transformers model for embeddings |
-| `INDEX_CATEGORIES` | 10 legal categories | Categories crawled by the indexer |
-| `ACTS_PER_CATEGORY` | `5` | Max Acts collected per category during indexing |
+|---|---|---|
+| `LLM_PROVIDER` | `anthropic` | Provider: `anthropic`, `openai`, `google`, `groq` |
+| `ANTHROPIC_API_KEY` | — | Required for Anthropic |
+| `VECTOR_STORE_BACKEND` | `chroma` | `chroma` or `qdrant` |
+| `EVALUATOR_PASS_THRESHOLD` | `0.7` | Minimum quality score to accept an answer |
+| `MAX_REFINEMENT_ROUNDS` | `2` | Refinement retries before returning best attempt |
+| `TOKEN_BUDGET_PER_QUERY` | `20000` | Token limit per query across all agents |
+
+See the [full configuration reference](https://irish-statute-assistant.readthedocs.io/user-guide/configuration.html) for all settings.

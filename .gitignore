@@ -9,3 +9,4 @@ data/chroma/
 .env
 .idea/
 .vscode/
+docs/_build/

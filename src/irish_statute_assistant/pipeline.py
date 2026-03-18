@@ -22,7 +22,8 @@ class Pipeline:
     Args:
         config: Application configuration.
 
-    Example:
+    Example::
+
         config = Config()
         pipeline = Pipeline(config)
         result = pipeline.query("How long do I have to bring a personal injury claim?")

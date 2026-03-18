@@ -88,8 +88,8 @@ class WriterOutput(BaseModel):
 class EvaluatorOutput(BaseModel):
     """Quality score and flags from the evaluator.
 
-    pass_ uses a Pydantic alias because 'pass' is a Python reserved word.
-    Access it as result.pass_ in code; it serialises as 'pass' in JSON.
+    ``pass_`` uses a Pydantic alias because ``pass`` is a Python reserved word.
+    Access it as ``result.pass_`` in code; it serialises as ``pass`` in JSON.
     """
 
     score: float = Field(ge=0.0, le=1.0)

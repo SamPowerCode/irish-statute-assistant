@@ -38,6 +38,7 @@ sequenceDiagram
     participant W as Writer
     participant G as GroundingChecker
     participant E as Evaluator
+    participant Ad as DevilsAdvocate
 
     loop Up to effective_refinements + 1 times
         S->>W: run(query, analyst_output, research, evaluator_flags)
@@ -53,7 +54,9 @@ sequenceDiagram
             S-->>S: return WriterOutput
         else retries remain
             S->>S: evaluator_flags = flags
-            Note over S: Re-run devil's advocate, inject new challenges
+            S->>Ad: run(analyst_output, query, research, mode=advocate_mode)
+            Ad-->>S: AdvocateOutput(challenges, severity)
+            S->>S: analyst_output.advocate_challenges = challenges
         end
     end
     Note over S: Exhausted — return best attempt

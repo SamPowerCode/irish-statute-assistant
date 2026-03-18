@@ -6,7 +6,8 @@ constructed by `Pipeline` and passed to the `Supervisor`.
 ## ConversationStore
 
 Stores every user/assistant exchange. On construction, loads the most recent
-`CONVERSATION_HISTORY_LIMIT` exchanges from the database.
+`history_limit` exchanges from the database (controlled by
+`CONVERSATION_HISTORY_LIMIT` in the environment).
 
 ```python
 store = ConversationStore(

@@ -35,7 +35,7 @@ in its JSON schema. After the devil's advocate runs, the Supervisor constructs a
 full `AnalystOutput`:
 
 ```python
-analyst_output = AnalystOutput(**llm_result.model_dump(), advocate_challenges=[])
+analyst_output = AnalystOutput(**llm_result.model_dump(exclude={"advocate_challenges"}), advocate_challenges=[])
 # ... later, after advocate runs:
 analyst_output.advocate_challenges = advocate_result.challenges
 ```

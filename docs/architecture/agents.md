@@ -12,10 +12,10 @@ question — never asks about jurisdiction (always Irish law).
 
 ## ResearcherAgent
 
-Searches the vector store for statute sections relevant to the query. Uses the
-configured embedding model (`all-MiniLM-L6-v2` by default) to find semantically
-similar Act sections. Falls back to a live HTTP fetch from irishstatutebook.ie
-if the store is empty, with rate limiting and retry logic.
+Searches the vector store for statute sections relevant to the query. Calls the
+vector store's `search()` method, which uses the configured embedding model to
+find semantically similar Act sections. Falls back to a live HTTP fetch from
+irishstatutebook.ie if the store is empty, with rate limiting and retry logic.
 
 **Input:** `query: str`
 **Output:** `ResearcherOutput(acts: list[ActSection])`
@@ -36,8 +36,9 @@ Challenges the analyst's findings before the writer proceeds. Two modes:
 
 - **Standard** — finds 1–3 weaknesses: missing exceptions, overriding statutes,
   or claims not supported by the retrieved text
-- **Strict** — adversarial; aims for up to 5 challenges. Used when analyst
-  confidence is below 0.5, or when re-running after a major-severity result
+- **Strict** — adversarial; aims for up to 5 challenges. Used on all retries
+  when analyst confidence was below 0.5 OR the initial advocate run returned
+  severity `"major"`
 
 Challenges are injected into `AnalystOutput.advocate_challenges` and passed to
 the writer, which must address them in caveats.
@@ -57,7 +58,7 @@ citation.
 
 ## GroundingCheckerAgent
 
-Cross-references each `KeyClause` in the writer's output against the retrieved
+Cross-references each `KeyClause` in the writer's `detailed_breakdown` against the retrieved
 statute text. Any claim that cannot be traced to the source text is added to
 `ungrounded_claims`. The Supervisor attaches these to `WriterOutput.warnings`.
 When `grounding_passed=False`, the evaluator penalises citation quality.

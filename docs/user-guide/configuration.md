@@ -27,6 +27,7 @@ listed below.
 | `EMBEDDING_MODEL` | string | `all-MiniLM-L6-v2` | Sentence-transformers model used for embeddings |
 | `INDEX_CATEGORIES` | list | *(10 categories)* | Legal categories to index. Default: employment, housing, family, criminal, contract, personal injury, planning, company, tax, consumer |
 | `ACTS_PER_CATEGORY` | int | `5` | Number of Acts to index per category |
+| `HF_TOKEN` | string | — | Hugging Face token for downloading embedding models. Required in some environments if the model requires authentication. |
 
 ## Memory
 

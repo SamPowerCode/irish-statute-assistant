@@ -38,6 +38,9 @@ GOOGLE_API_KEY=...
 # Or Groq
 LLM_PROVIDER=groq
 GROQ_API_KEY=...
+
+# Hugging Face (for embedding model download, if required)
+HF_TOKEN=hf_...
 ```
 
 See [Configuration](configuration.md) for the full list of settings.

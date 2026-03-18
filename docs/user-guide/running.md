@@ -9,8 +9,8 @@ uv run python -m irish_statute_assistant.main
 You will see a prompt:
 
 ```
-Irish Statute Assistant
-Type your question or 'quit' to exit.
+Irish Statute Research Assistant
+Type your legal question, or 'quit' to exit.
 
 Your question:
 ```
@@ -91,5 +91,5 @@ questions are understood in context.
 
 ## Ending a session
 
-Type `quit` or press `Ctrl+C` to exit. Conversation history is saved
+Type `quit`, `exit`, or `q` (or press `Ctrl+C`) to exit. Conversation history is saved
 automatically to `~/.irish_statute_assistant/conversations.db`.

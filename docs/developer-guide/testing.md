@@ -16,7 +16,7 @@ python -m pytest tests/test_supervisor.py -v
 python -m pytest tests/test_supervisor.py::test_supervisor_returns_writer_output_when_clear_and_passes -v
 ```
 
-Expected: `143 passed`
+Expected: All tests pass (no failures).
 
 ## Test file overview
 
@@ -43,13 +43,27 @@ Agent tests bypass the constructor (which needs a real `Config` and LLM) using
 
 ```python
 agent = WriterAgent.__new__(WriterAgent)
-agent._invoke_chain = MagicMock(return_value=WriterOutput(...))
+mock_chain = MagicMock()
+mock_chain.invoke = MagicMock(return_value=WriterOutput(...))
+agent._chain = mock_chain
 ```
 
-### Mock `_invoke_chain`, not `_chain.invoke`
+### Mock `_chain.invoke`, not `_invoke_chain`
 
-Mock at `_invoke_chain` level so the test is sensitive to whether the agent
-correctly delegates through `BaseAgent`:
+Most agents store the LangChain chain as `self._chain`. Tests mock `_chain.invoke`
+directly so the agent's `run()` method is exercised end-to-end through
+`_invoke_chain`, while the actual LLM call is intercepted at the chain level:
+
+```python
+mock_chain = MagicMock()
+mock_chain.invoke = MagicMock(return_value=SomeOutput(...))
+agent._chain = mock_chain
+result = agent.run(...)
+mock_chain.invoke.assert_called_once()
+```
+
+Some agents (e.g. `GroundingCheckerAgent`) mock `_invoke_chain` directly instead,
+which is appropriate when you want to verify the exact inputs passed to that method:
 
 ```python
 agent._invoke_chain = MagicMock(return_value=SomeOutput(...))

@@ -63,7 +63,7 @@ uv add langchain-mistralai
 ## 5. Verify the sync assertion
 
 ```bash
-python -c "from irish_statute_assistant.config import Config"
+python -c "import irish_statute_assistant.config"
 ```
 
 If `_PROVIDER_KEY_MAP` and `_DEFAULT_MODELS` are out of sync, this raises an

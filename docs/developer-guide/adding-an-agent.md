@@ -82,12 +82,13 @@ class Supervisor:
         )
         if context:
             context.consume(self._summarizer.last_token_count)
-        writer_result.one_liner = summary.one_liner  # add field to WriterOutput if needed
+        # Note: one_liner must be added as a field to WriterOutput in schemas.py first
+        writer_result.one_liner = summary.one_liner
 ```
 
 ## 4. Write tests
 
-Follow the project pattern — bypass `__init__` using `__new__` and mock `_invoke_chain`:
+Follow the project pattern — bypass `__init__` using `__new__` and mock `_chain.invoke`:
 
 ```python
 from unittest.mock import MagicMock
@@ -96,7 +97,9 @@ from irish_statute_assistant.models.schemas import SummarizerOutput, WriterOutpu
 
 def make_summarizer(one_liner):
     agent = SummarizerAgent.__new__(SummarizerAgent)
-    agent._invoke_chain = MagicMock(return_value=SummarizerOutput(one_liner=one_liner))
+    mock_chain = MagicMock()
+    mock_chain.invoke = MagicMock(return_value=SummarizerOutput(one_liner=one_liner))
+    agent._chain = mock_chain
     return agent
 
 def test_summarizer_returns_output():
@@ -110,7 +113,7 @@ def test_summarizer_returns_output():
     )
     result = agent.run(writer_output=writer_out)
     assert result.one_liner == "You have two years to claim."
-    agent._invoke_chain.assert_called_once()
+    agent._chain.invoke.assert_called_once()
 ```
 
 ## When to use `with_structured_output`

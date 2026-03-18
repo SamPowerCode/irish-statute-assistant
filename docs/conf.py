@@ -37,3 +37,6 @@ napoleon_include_init_with_doc = True
 
 # Suppress noisy MyST warnings about heading levels
 suppress_warnings = ["myst.header"]
+
+# Exclude internal planning/spec files from the build
+exclude_patterns = ["superpowers/**"]

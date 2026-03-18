@@ -84,7 +84,7 @@ Key settings (set in `.env` or as environment variables):
 | Variable | Default | Description |
 |---|---|---|
 | `LLM_PROVIDER` | `anthropic` | Provider: `anthropic`, `openai`, `google`, `groq` |
-| `ANTHROPIC_API_KEY` | — | Required for Anthropic |
+| `ANTHROPIC_API_KEY` | — | Required when `LLM_PROVIDER=anthropic`. Other providers need their own key — see full docs |
 | `VECTOR_STORE_BACKEND` | `chroma` | `chroma` or `qdrant` |
 | `EVALUATOR_PASS_THRESHOLD` | `0.7` | Minimum quality score to accept an answer |
 | `MAX_REFINEMENT_ROUNDS` | `2` | Refinement retries before returning best attempt |

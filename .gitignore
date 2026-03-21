@@ -10,3 +10,4 @@ data/chroma/
 .idea/
 .vscode/
 docs/_build/
+.superpowers/

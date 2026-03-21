@@ -23,11 +23,13 @@ A Streamlit web UI for the Irish Statute Research Assistant that shows the multi
 
 ## Non-Goals
 
+None of the following will be implemented:
+
 - Production deployment or hosting
 - Authentication or multi-user support
 - Mobile layout
-- Any changes to agent logic or pipeline behaviour
-- Exposing per-query token counts (would require changes to `Pipeline.query()` return type)
+- Changes to agent logic, prompts, or pipeline behaviour (the only core change is adding the optional `progress_callback` parameter — no logic changes)
+- Per-query token count display in the UI (would require changing `Pipeline.query()`'s return type)
 
 ---
 

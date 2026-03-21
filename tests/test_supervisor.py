@@ -227,6 +227,23 @@ def test_supervisor_explicit_preference_saved_on_solicitor_query():
     sup._preferences.set.assert_any_call("user_type", "solicitor")
 
 
+def test_supervisor_passes_preferences_to_writer():
+    research, analyst_llm, writer_out, eval_pass, advocate, grounding = make_defaults()
+    sup = make_supervisor(
+        clarifier_output=ClarifierOutput(needs_clarification=False),
+        researcher_output=research,
+        analyst_llm_output=analyst_llm,
+        writer_output=writer_out,
+        evaluator_output=eval_pass,
+        advocate_output=advocate,
+        grounding_output=grounding,
+    )
+    sup._preferences.all = MagicMock(return_value={"language_level": "technical"})
+    sup.run(query="Q", context=None)
+    call_kwargs = sup._writer.run.call_args[1]
+    assert call_kwargs.get("user_preferences") == {"language_level": "technical"}
+
+
 def test_supervisor_inferred_preference_saved_after_second_plain_english_flag():
     research, analyst_llm, writer_out, _, advocate, grounding = make_defaults()
     eval_with_flag = EvaluatorOutput(score=0.75, flags=["plain english"], **{"pass": True})

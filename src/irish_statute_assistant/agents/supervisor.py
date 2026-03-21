@@ -84,6 +84,7 @@ class Supervisor:
             or a WriterOutput with the final answer.
         """
         history = self._memory.format_for_prompt()
+        prefs = self._preferences.all()
 
         # 1. Clarify
         clarifier_result = run_with_retry(
@@ -147,6 +148,7 @@ class Supervisor:
                     analysis=analyst_output,
                     research=research,
                     evaluator_flags=evaluator_flags,
+                    user_preferences=prefs,
                 ),
                 self._max_retries,
             )

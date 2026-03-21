@@ -19,6 +19,8 @@ Rules:
 - Always include at least one caveat reminding the user to seek professional legal advice.
 - Never make up law. Only use what the analyst found.
 
+User preferences (tailor your response accordingly): {user_preferences}
+
 If there are evaluator flags, address them: {evaluator_flags}
 
 Challenges raised by the devil's advocate (address each in caveats):
@@ -63,6 +65,7 @@ class WriterAgent(BaseAgent):
         analysis: AnalystOutput,
         research: ResearcherOutput,
         evaluator_flags: list[str],
+        user_preferences: dict[str, str] | None = None,
     ) -> WriterOutput:
         """Write a plain-English answer to the query.
 
@@ -72,6 +75,8 @@ class WriterAgent(BaseAgent):
             research: Retrieved statute sections.
             evaluator_flags: Quality flags from the previous evaluation round,
                 or an empty list on the first attempt.
+            user_preferences: Persisted preferences (e.g. language_level, user_type).
+                Pass an empty dict or None if no preferences are stored.
 
         Returns:
             WriterOutput with a short_answer (≤100 words) and a detailed_breakdown.
@@ -86,6 +91,10 @@ class WriterAgent(BaseAgent):
         key_clauses_text = "\n".join(
             f"{kc.text} ({kc.act}, {kc.section})" for kc in analysis.key_clauses
         )
+        prefs = user_preferences or {}
+        prefs_text = (
+            ", ".join(f"{k}={v}" for k, v in prefs.items()) if prefs else "None"
+        )
         return self._invoke_chain(self._chain, {
             "query": query,
             "key_clauses": key_clauses_text,
@@ -94,4 +103,5 @@ class WriterAgent(BaseAgent):
             "act_titles": act_titles,
             "evaluator_flags": flags_text,
             "advocate_challenges": challenges_text,
+            "user_preferences": prefs_text,
         })

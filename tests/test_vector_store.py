@@ -1,4 +1,6 @@
+import logging
 import pytest
+from unittest.mock import patch
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.tools.vector_store import VectorStore, get_vector_store
 from irish_statute_assistant.tools.qdrant_vector_store import QdrantVectorStore
@@ -175,3 +177,12 @@ def test_qdrant_add_sections_wipes_on_second_call(monkeypatch):
     results = store.search("content", top_k=10)
     assert len(results) == 1
     assert results[0]["title"] == "New Act"
+
+
+def test_qdrant_search_logs_warning_on_exception(monkeypatch, caplog):
+    store = make_qdrant_store(monkeypatch)
+    with patch.object(store._embeddings, "embed_query", side_effect=RuntimeError("boom")):
+        with caplog.at_level(logging.WARNING, logger="irish_statute_assistant.tools.qdrant_vector_store"):
+            result = store.search("anything")
+    assert result == []
+    assert any("boom" in r.message for r in caplog.records)

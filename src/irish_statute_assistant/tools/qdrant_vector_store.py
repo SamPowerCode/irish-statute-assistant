@@ -1,11 +1,15 @@
 """Qdrant-backed vector store — drop-in replacement for VectorStore (Chroma)."""
 from __future__ import annotations
 
+import logging
+
 from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from irish_statute_assistant.config import Config
+
+logger = logging.getLogger(__name__)
 
 _COLLECTION_NAME = "irish_statutes"
 
@@ -78,5 +82,6 @@ class QdrantVectorStore:
                 }
                 for r in result.points
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning("Qdrant search failed: %s", e)
             return []

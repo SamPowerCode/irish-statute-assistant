@@ -105,3 +105,32 @@ def test_writer_passes_evaluator_flags_in_prompt():
     )
     call_args = agent._chain.invoke.call_args[0][0]
     assert "Add citation" in call_args["evaluator_flags"]
+
+
+def test_writer_injects_user_preferences_when_set():
+    agent = make_writer(
+        short_answer="Short answer.", summary="S", relevant_acts=[],
+        key_clauses=[sample_key_clause()], caveats=[],
+    )
+    agent.run(
+        query="Q", analysis=sample_analyst_output(),
+        research=sample_research(), evaluator_flags=[],
+        user_preferences={"language_level": "technical", "user_type": "solicitor"},
+    )
+    call_args = agent._chain.invoke.call_args[0][0]
+    assert "technical" in call_args["user_preferences"]
+    assert "solicitor" in call_args["user_preferences"]
+
+
+def test_writer_user_preferences_none_when_empty():
+    agent = make_writer(
+        short_answer="Short answer.", summary="S", relevant_acts=[],
+        key_clauses=[sample_key_clause()], caveats=[],
+    )
+    agent.run(
+        query="Q", analysis=sample_analyst_output(),
+        research=sample_research(), evaluator_flags=[],
+        user_preferences={},
+    )
+    call_args = agent._chain.invoke.call_args[0][0]
+    assert call_args["user_preferences"] == "None"

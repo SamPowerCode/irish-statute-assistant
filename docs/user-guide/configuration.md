@@ -8,12 +8,13 @@ listed below.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `LLM_PROVIDER` | `anthropic` \| `openai` \| `google` \| `groq` | `anthropic` | The LLM provider to use |
+| `LLM_PROVIDER` | `anthropic` \| `openai` \| `google` \| `groq` \| `ollama` | `anthropic` | The LLM provider to use |
 | `ANTHROPIC_API_KEY` | string | — | Required when `LLM_PROVIDER=anthropic` |
 | `OPENAI_API_KEY` | string | — | Required when `LLM_PROVIDER=openai` |
 | `GOOGLE_API_KEY` | string | — | Required when `LLM_PROVIDER=google` |
 | `GROQ_API_KEY` | string | — | Required when `LLM_PROVIDER=groq` |
-| `MODEL_NAME` | string | *(provider default)* | Override the model. Defaults: `claude-sonnet-4-6`, `gpt-4o`, `gemini-2.0-flash`, `llama-3.3-70b-versatile` |
+| `OLLAMA_BASE_URL` | string | `http://localhost:11434` | Ollama server URL. Only used when `LLM_PROVIDER=ollama` |
+| `MODEL_NAME` | string | *(provider default)* | Override the model. Defaults: `claude-sonnet-4-6`, `gpt-4o`, `gemini-2.0-flash`, `llama-3.3-70b-versatile`. **Required when `LLM_PROVIDER=ollama`** (no default). |
 | `TEMPERATURE` | float | `0.0` | LLM temperature. 0.0 gives deterministic output |
 
 ## Vector Store

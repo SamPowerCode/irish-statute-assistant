@@ -32,7 +32,7 @@ falls below threshold.
 - **Typed exception hierarchy** — `StatuteNotFoundError`, `BudgetExceededError`, `ValidationRepairError`
 - **Validation retry** — failed schema validations are retried up to `MAX_RETRIES` times
 - **Token budget** — `QueryContext` tracks usage per query and raises `BudgetExceededError` if exceeded
-- **Multi-provider** — Anthropic, OpenAI, Google, and Groq supported
+- **Multi-provider** — Anthropic, OpenAI, Google, Groq, and Ollama (local) supported
 
 ---
 
@@ -60,6 +60,14 @@ uv run python -m irish_statute_assistant.indexer
 uv run python -m irish_statute_assistant.main
 ```
 
+**Run (Streamlit UI):**
+
+```bash
+uv run --extra ui streamlit run app.py
+```
+Opens a browser UI at `http://localhost:8501` with a live pipeline trace sidebar.
+(The `--extra ui` flag installs Streamlit on the fly if not already installed.)
+
 **Test:**
 
 ```bash
@@ -83,7 +91,8 @@ Key settings (set in `.env` or as environment variables):
 
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_PROVIDER` | `anthropic` | Provider: `anthropic`, `openai`, `google`, `groq` |
+| `LLM_PROVIDER` | `anthropic` | Provider: `anthropic`, `openai`, `google`, `groq`, `ollama` |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL. Only used when `LLM_PROVIDER=ollama` |
 | `ANTHROPIC_API_KEY` | — | Required when `LLM_PROVIDER=anthropic`. Other providers need their own key — see full docs |
 | `VECTOR_STORE_BACKEND` | `chroma` | `chroma` or `qdrant` |
 | `EVALUATOR_PASS_THRESHOLD` | `0.7` | Minimum quality score to accept an answer |

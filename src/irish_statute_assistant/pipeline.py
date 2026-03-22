@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from irish_statute_assistant.agents.supervisor import Supervisor
 from irish_statute_assistant.config import Config
@@ -42,7 +43,11 @@ class Pipeline:
         self._preferences = UserPreferenceStore(db_path=config.preferences_db_path)
         self._supervisor = Supervisor(config, memory=self._memory, preferences=self._preferences)
 
-    def query(self, user_query: str, progress_callback=None) -> WriterOutput | str:
+    def query(
+        self,
+        user_query: str,
+        progress_callback: Callable[[str, dict], None] | None = None,
+    ) -> WriterOutput | str:
         """Submit a user query and return the assistant's response.
 
         Args:

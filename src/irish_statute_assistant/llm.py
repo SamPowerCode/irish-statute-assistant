@@ -13,6 +13,7 @@ _DEFAULT_MODELS: dict[str, str] = {
     "openai":    "gpt-4o",
     "google":    "gemini-2.0-flash",
     "groq":      "llama-3.3-70b-versatile",
+    "ollama":    "",  # no default; MODEL_NAME required
 }
 
 

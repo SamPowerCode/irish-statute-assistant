@@ -10,6 +10,7 @@ _PROVIDER_KEY_MAP = {
     "openai":    "openai_api_key",
     "google":    "google_api_key",
     "groq":      "groq_api_key",
+    "ollama":    None,  # no API key required for local Ollama
 }
 
 assert set(_PROVIDER_KEY_MAP) == set(_DEFAULT_MODELS), (
@@ -31,10 +32,11 @@ class Config(BaseSettings):
 
     anthropic_api_key: str = ""
     model_name: str = ""
-    llm_provider: Literal["anthropic", "openai", "google", "groq"] = "anthropic"
+    llm_provider: Literal["anthropic", "openai", "google", "groq", "ollama"] = "anthropic"
     openai_api_key: str = ""
     google_api_key: str = ""
     groq_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434"
     evaluator_pass_threshold: float = 0.7
     max_refinement_rounds: int = 2
     max_retries: int = 3
@@ -60,12 +62,18 @@ class Config(BaseSettings):
 
     @model_validator(mode="after")
     def check_provider_and_set_model(self) -> "Config":
-        # Set default model if not explicitly provided
+        if self.llm_provider == "ollama":
+            if not self.model_name:
+                raise ValueError(
+                    "MODEL_NAME is required when LLM_PROVIDER=ollama "
+                    "(e.g. MODEL_NAME=llama3.2)"
+                )
+            return self
+        # Non-Ollama providers: set default model and validate API key
         if not self.model_name:
             self.model_name = _DEFAULT_MODELS[self.llm_provider]
-        # Validate that the required API key for the chosen provider is set
         key_field = _PROVIDER_KEY_MAP[self.llm_provider]
-        if not getattr(self, key_field):
+        if key_field is not None and not getattr(self, key_field):
             raise ValueError(
                 f"{key_field.upper()} is required when LLM_PROVIDER={self.llm_provider!r}"
             )

@@ -67,3 +67,42 @@ def test_config_explicit_model_name_not_overridden(monkeypatch):
         _env_file=None,
     )
     assert config.model_name == "claude-opus-4-6"
+
+
+# --- Ollama provider ---
+
+def test_config_ollama_valid():
+    """Ollama with a model name set passes validation; no API key needed."""
+    config = Config(
+        llm_provider="ollama",
+        model_name="llama3.2",
+        _env_file=None,
+    )
+    assert config.model_name == "llama3.2"
+
+
+def test_config_ollama_no_model_raises():
+    """Ollama without a model name raises a clear ValidationError."""
+    with pytest.raises(ValidationError, match="MODEL_NAME is required"):
+        Config(llm_provider="ollama", _env_file=None)
+
+
+def test_config_ollama_defaults():
+    """Ollama base URL defaults to localhost:11434."""
+    config = Config(
+        llm_provider="ollama",
+        model_name="llama3.2",
+        _env_file=None,
+    )
+    assert config.ollama_base_url == "http://localhost:11434"
+
+
+def test_config_ollama_custom_url():
+    """OLLAMA_BASE_URL env var is picked up correctly."""
+    config = Config(
+        llm_provider="ollama",
+        model_name="mistral",
+        ollama_base_url="http://192.168.1.10:11434",
+        _env_file=None,
+    )
+    assert config.ollama_base_url == "http://192.168.1.10:11434"

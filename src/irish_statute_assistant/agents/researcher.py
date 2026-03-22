@@ -31,6 +31,12 @@ class ResearcherAgent(BaseAgent):
         self._cache = cache
         self._fetcher = fetcher
         self._vector_store = get_vector_store(config)
+        self._last_source: str = ""
+
+    @property
+    def last_source(self) -> str:
+        """The data source used in the most recent run(): 'vector store' or 'live fetch'."""
+        return self._last_source
 
     def run(self, query: str) -> ResearcherOutput:
         """Retrieve statute sections relevant to the query.
@@ -45,12 +51,16 @@ class ResearcherAgent(BaseAgent):
             StatuteNotFoundError: If no relevant statutes are found.
         """
         if self._vector_store.is_populated():
-            return self._run_vector(query)
+            result = self._run_vector(query)
+            self._last_source = "vector store"
+            return result
         logger.warning(
             "Vector store is not populated — falling back to live HTTP fetch. "
             "Run `python -m irish_statute_assistant.indexer` to build the index."
         )
-        return self._run_live(query)
+        result = self._run_live(query)
+        self._last_source = "live fetch"
+        return result
 
     def _run_vector(self, query: str) -> ResearcherOutput:
         results = self._vector_store.search(query, top_k=10)

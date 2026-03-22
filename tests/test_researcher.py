@@ -132,3 +132,51 @@ def test_researcher_falls_back_when_store_not_populated(caplog):
     assert result.acts[0].sections[0] == "Live section text."
     assert any("vector store" in msg.lower() or "populated" in msg.lower()
                for msg in caplog.messages)
+
+
+def test_researcher_last_source_is_vector_store_when_populated(monkeypatch):
+    from unittest.mock import MagicMock, patch
+    from irish_statute_assistant.agents.researcher import ResearcherAgent
+    from irish_statute_assistant.config import Config
+    from irish_statute_assistant.tools.session_cache import SessionCache
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    config = Config()
+    cache = SessionCache()
+    fetcher = MagicMock()
+
+    mock_vs = MagicMock()
+    mock_vs.is_populated.return_value = True
+    mock_vs.search.return_value = [
+        {"page_content": "s1", "title": "Act A", "url": "https://x.com", "section_index": 0}
+    ]
+
+    with patch("irish_statute_assistant.agents.researcher.get_vector_store", return_value=mock_vs):
+        agent = ResearcherAgent(config, cache, fetcher)
+        agent.run("test query")
+
+    assert agent.last_source == "vector store"
+
+
+def test_researcher_last_source_is_live_fetch_when_not_populated(monkeypatch):
+    from unittest.mock import MagicMock, patch
+    from irish_statute_assistant.agents.researcher import ResearcherAgent
+    from irish_statute_assistant.config import Config
+    from irish_statute_assistant.tools.session_cache import SessionCache
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    config = Config()
+    cache = SessionCache()
+
+    fetcher = MagicMock()
+    fetcher.search.return_value = [{"title": "Act A", "url": "https://x.com"}]
+    fetcher.fetch.return_value = ["Section text"]
+
+    mock_vs = MagicMock()
+    mock_vs.is_populated.return_value = False
+
+    with patch("irish_statute_assistant.agents.researcher.get_vector_store", return_value=mock_vs):
+        agent = ResearcherAgent(config, cache, fetcher)
+        agent.run("test query")
+
+    assert agent.last_source == "live fetch"

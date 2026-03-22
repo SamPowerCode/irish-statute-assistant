@@ -39,6 +39,11 @@ GOOGLE_API_KEY=...
 LLM_PROVIDER=groq
 GROQ_API_KEY=...
 
+# Or Ollama (local — no API key needed)
+LLM_PROVIDER=ollama
+MODEL_NAME=llama3.2          # required — no default
+OLLAMA_BASE_URL=http://localhost:11434   # optional, this is the default
+
 # Hugging Face (for embedding model download, if required)
 HF_TOKEN=hf_...
 ```
@@ -70,3 +75,19 @@ uv run python -m irish_statute_assistant.indexer
 ```
 
 This crawls irishstatutebook.ie by legal category, embeds the statute sections, and writes them to the configured vector store. Re-run this command to refresh the index.
+
+## Optional: Streamlit UI
+
+To use the browser-based interface, install the `ui` extra:
+
+```bash
+uv sync --extra ui
+```
+
+Then run:
+
+```bash
+uv run streamlit run app.py
+```
+
+See [Running — Streamlit UI](running.md#streamlit-ui) for details.

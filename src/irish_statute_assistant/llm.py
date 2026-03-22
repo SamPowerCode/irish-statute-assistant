@@ -48,7 +48,15 @@ def get_llm(config: Config, max_tokens: int) -> Any:
             max_tokens=max_tokens,
             temperature=config.temperature,
         )
-    else:  # anthropic (default)
+    elif config.llm_provider == "ollama":
+        from langchain_ollama import ChatOllama
+        return ChatOllama(
+            model=config.model_name,
+            base_url=config.ollama_base_url,
+            temperature=config.temperature,
+            num_predict=max_tokens,
+        )
+    elif config.llm_provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
         return ChatAnthropic(
             model=config.model_name,
@@ -56,3 +64,5 @@ def get_llm(config: Config, max_tokens: int) -> Any:
             max_tokens=max_tokens,
             temperature=config.temperature,
         )
+    else:
+        raise ValueError(f"Unknown provider: {config.llm_provider!r}")

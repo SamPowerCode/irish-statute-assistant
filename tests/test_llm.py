@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-def make_config(provider: str, api_key: str, model: str = ""):
+def make_config(provider: str, api_key: str = "", model: str = ""):
     from irish_statute_assistant.config import Config
 
     key_map = {
@@ -12,11 +12,12 @@ def make_config(provider: str, api_key: str, model: str = ""):
         "openai":    {"openai_api_key": api_key},
         "google":    {"google_api_key": api_key},
         "groq":      {"groq_api_key": api_key},
+        "ollama":    {},  # no API key
     }
     kwargs = {"llm_provider": provider, **key_map[provider]}
     if model:
         kwargs["model_name"] = model
-    return Config(**kwargs)
+    return Config(**kwargs, _env_file=None)
 
 
 @pytest.mark.parametrize("provider,patch_target,expected_kwarg", [
@@ -54,3 +55,18 @@ def test_get_llm_passes_api_key():
         MockLLM.return_value = MagicMock()
         get_llm(config, max_tokens=100)
     assert MockLLM.call_args.kwargs["api_key"] == "my-groq-key"
+
+
+def test_get_llm_ollama():
+    from irish_statute_assistant.llm import get_llm
+    config = make_config("ollama", model="llama3.2")
+    with patch("langchain_ollama.ChatOllama") as MockLLM:
+        MockLLM.return_value = MagicMock()
+        result = get_llm(config, max_tokens=512)
+    assert MockLLM.called
+    assert result is MockLLM.return_value
+    call_kwargs = MockLLM.call_args.kwargs
+    assert call_kwargs["model"] == "llama3.2"
+    assert call_kwargs["base_url"] == "http://localhost:11434"
+    assert call_kwargs["temperature"] == config.temperature
+    assert call_kwargs["num_predict"] == 512

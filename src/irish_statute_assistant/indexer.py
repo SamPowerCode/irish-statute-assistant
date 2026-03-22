@@ -13,15 +13,15 @@ from irish_statute_assistant.tools.session_cache import SessionCache
 from irish_statute_assistant.tools.statute_fetcher import StatuteFetcher
 from irish_statute_assistant.tools.vector_store import get_vector_store
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s — %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:
     config = Config()
+    logging.basicConfig(
+        level=getattr(logging, config.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s — %(message)s",
+    )
     logger.info("Starting indexer — %d categories, up to %d acts each",
                 len(config.index_categories), config.acts_per_category)
 
@@ -38,7 +38,7 @@ def main() -> None:
 
     for category in config.index_categories:
         logger.info("Category: %s", category)
-        results = fetcher.search(category)
+        results = fetcher.search(category, limit=config.acts_per_category)
         collected = 0
         for result in results:
             if collected >= config.acts_per_category:

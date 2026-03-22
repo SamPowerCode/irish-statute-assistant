@@ -47,3 +47,4 @@ listed below.
 | `MAX_RETRIES` | int | `3` | Maximum retries when an LLM call fails schema validation |
 | `TOKEN_BUDGET_PER_QUERY` | int | `20000` | Maximum tokens to spend across all agents for a single query |
 | `RATE_LIMIT_DELAY` | float | `1.0` | Seconds to wait between HTTP requests to irishstatutebook.ie |
+| `LOG_LEVEL` | string | `INFO` | Logging verbosity. Standard Python level names: `DEBUG`, `INFO`, `WARNING`, `ERROR` |

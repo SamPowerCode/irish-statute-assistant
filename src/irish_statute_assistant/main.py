@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.exceptions import (
@@ -48,6 +49,10 @@ def format_output(result: WriterOutput | str) -> str:
 
 def main() -> None:
     config = Config()
+    logging.basicConfig(
+        level=getattr(logging, config.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s — %(message)s",
+    )
     pipeline = Pipeline(config)
 
     print("Irish Statute Research Assistant")

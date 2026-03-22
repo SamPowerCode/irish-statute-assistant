@@ -36,8 +36,8 @@ class StatuteFetcher:
         self._delay = rate_limit_delay
         self._max_retries = max_retries
 
-    def search(self, query: str) -> list[dict]:
-        """Search irishstatutebook.ie and return up to 5 Act results as {title, url}.
+    def search(self, query: str, limit: int = 5) -> list[dict]:
+        """Search irishstatutebook.ie and return up to *limit* Act results as {title, url}.
 
         Uses the Solr JSON API directly.  Results are filtered to type == 'act'
         so that Statutory Instruments are excluded.
@@ -48,7 +48,8 @@ class StatuteFetcher:
         ):
             with attempt:
                 time.sleep(self._delay)
-                params = {"q": query, "wt": "json"}
+                # Request extra rows from Solr to account for non-act items being filtered out.
+                params = {"q": query, "wt": "json", "rows": limit * 3}
                 response = httpx.get(SOLR_SEARCH_URL, params=params, timeout=30)
                 response.raise_for_status()
 
@@ -62,7 +63,7 @@ class StatuteFetcher:
                     link = doc.get("link", "")
                     url = link if link.startswith("http") else BASE_URL + link
                     results.append({"title": doc.get("title", ""), "url": url})
-                    if len(results) >= 5:
+                    if len(results) >= limit:
                         break
 
                 return results

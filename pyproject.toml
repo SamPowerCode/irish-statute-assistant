@@ -28,6 +28,9 @@ dependencies = [
     "qdrant-client>=1.7",
 ]
 
+[project.optional-dependencies]
+ui = ["streamlit>=1.35"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 from irish_statute_assistant.agents.supervisor import Supervisor
 from irish_statute_assistant.models.schemas import (
     ClarifierOutput, ResearcherOutput, ActSection,
@@ -57,6 +57,7 @@ def make_supervisor(
     sup._researcher = MagicMock()
     sup._researcher.run = MagicMock(return_value=researcher_output)
     sup._researcher.last_token_count = 0
+    type(sup._researcher).last_source = PropertyMock(return_value="live fetch")
 
     sup._analyst = MagicMock()
     sup._analyst.run = MagicMock(return_value=analyst_llm_output)
@@ -278,3 +279,85 @@ def test_supervisor_inferred_preference_saved_after_second_plain_english_flag():
     calls_after_second = [c for c in sup._preferences.set.call_args_list
                           if c[0] == ("language_level", "technical")]
     assert len(calls_after_second) == 1
+
+
+def test_supervisor_callback_called_for_each_agent_on_happy_path():
+    research, analyst_llm, writer_out, eval_pass, advocate, grounding = make_defaults()
+    sup = make_supervisor(
+        clarifier_output=ClarifierOutput(needs_clarification=False),
+        researcher_output=research,
+        analyst_llm_output=analyst_llm,
+        writer_output=writer_out,
+        evaluator_output=eval_pass,
+        advocate_output=advocate,
+        grounding_output=grounding,
+    )
+    calls = []
+    sup.run(query="Q", context=None, progress_callback=lambda name, stats: calls.append((name, stats)))
+    agent_names = [name for name, _ in calls]
+    assert agent_names == [
+        "Clarifier", "Researcher", "Analyst", "Devil's Advocate",
+        "Writer", "Grounding Checker", "Evaluator",
+    ]
+
+
+def test_supervisor_callback_stats_keys_per_agent():
+    research, analyst_llm, writer_out, eval_pass, advocate, grounding = make_defaults()
+    sup = make_supervisor(
+        clarifier_output=ClarifierOutput(needs_clarification=False),
+        researcher_output=research,
+        analyst_llm_output=analyst_llm,
+        writer_output=writer_out,
+        evaluator_output=eval_pass,
+        advocate_output=advocate,
+        grounding_output=grounding,
+    )
+    stats_by_agent = {}
+    sup.run(query="Q", context=None, progress_callback=lambda n, s: stats_by_agent.update({n: s}))
+
+    assert {"needs_clarification", "duration_s"} <= stats_by_agent["Clarifier"].keys()
+    assert {"acts_found", "source", "duration_s"} <= stats_by_agent["Researcher"].keys()
+    assert {"key_clauses", "confidence", "duration_s"} <= stats_by_agent["Analyst"].keys()
+    assert {"challenges", "severity", "round", "duration_s"} <= stats_by_agent["Devil's Advocate"].keys()
+    assert {"round", "duration_s"} <= stats_by_agent["Writer"].keys()
+    assert {"grounding_passed", "ungrounded", "duration_s"} <= stats_by_agent["Grounding Checker"].keys()
+    assert {"score", "passed", "flags", "duration_s"} <= stats_by_agent["Evaluator"].keys()
+
+
+def test_supervisor_callback_called_eleven_times_on_two_round_run():
+    research, analyst_llm, writer_out, _, advocate, grounding = make_defaults()
+    eval_fail = EvaluatorOutput(score=0.4, flags=["Bad"], **{"pass": False})
+    eval_pass = EvaluatorOutput(score=0.85, flags=[], **{"pass": True})
+    sup = make_supervisor(
+        clarifier_output=ClarifierOutput(needs_clarification=False),
+        researcher_output=research,
+        analyst_llm_output=analyst_llm,
+        writer_output=writer_out,
+        evaluator_output=eval_fail,
+        advocate_output=advocate,
+        grounding_output=grounding,
+    )
+    sup._evaluator.run = MagicMock(side_effect=[eval_fail, eval_pass])
+    calls = []
+    sup.run(query="Q", context=None, progress_callback=lambda n, s: calls.append(n))
+    # Clarifier, Researcher, Analyst, Advocate(initial) = 4
+    # Round 1: Writer, Grounding Checker, Evaluator(fail), Advocate(retry) = 4
+    # Round 2: Writer, Grounding Checker, Evaluator(pass) = 3
+    assert len(calls) == 11
+
+
+def test_supervisor_callback_fired_before_early_return_on_clarification():
+    research, analyst_llm, writer_out, eval_pass, advocate, grounding = make_defaults()
+    sup = make_supervisor(
+        clarifier_output=ClarifierOutput(needs_clarification=True, question="Which court?"),
+        researcher_output=research,
+        analyst_llm_output=analyst_llm,
+        writer_output=writer_out,
+        evaluator_output=eval_pass,
+        advocate_output=advocate,
+        grounding_output=grounding,
+    )
+    calls = []
+    result = sup.run(query="Q", context=None, progress_callback=lambda n, s: calls.append(n))
+    assert result == "Which court?"
+    assert calls == ["Clarifier"]

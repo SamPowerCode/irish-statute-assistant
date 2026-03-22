@@ -57,3 +57,36 @@ def test_pipeline_query_passes_context_to_supervisor():
     call_kwargs = mock_sup.run.call_args
     context_arg = mock_sup.run.call_args.kwargs["context"]
     assert isinstance(context_arg, QueryContext)
+
+
+def test_pipeline_forwards_progress_callback_to_supervisor(monkeypatch):
+    """Pipeline.query() must forward progress_callback to Supervisor.run()."""
+    from unittest.mock import MagicMock, patch
+    from irish_statute_assistant.pipeline import Pipeline
+    from irish_statute_assistant.config import Config
+    from irish_statute_assistant.models.schemas import WriterOutput, DetailedBreakdown, KeyClause
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    config = Config()
+    pipeline = Pipeline(config)
+
+    dummy_output = WriterOutput(
+        short_answer="Test answer.",
+        detailed_breakdown=DetailedBreakdown(
+            summary="S", relevant_acts=["Act A"],
+            key_clauses=[KeyClause(text="t", act="Act A", section="s.1")],
+            caveats=["Seek advice"],
+        ),
+    )
+
+    received_callback = {}
+
+    def fake_run(query, context=None, progress_callback=None):
+        received_callback["cb"] = progress_callback
+        return dummy_output
+
+    with patch.object(pipeline._supervisor, "run", side_effect=fake_run):
+        cb = lambda name, stats: None
+        pipeline.query("test query", progress_callback=cb)
+
+    assert received_callback["cb"] is cb

@@ -46,6 +46,7 @@ class Config(BaseSettings):
     conversations_db_path: str = "~/.irish_statute_assistant/conversations.db"
     preferences_db_path: str = "~/.irish_statute_assistant/preferences.db"
     rate_limit_delay: float = 1.0
+    log_level: str = "INFO"
     # Vector store
     vector_store_backend: Literal["chroma", "qdrant"] = "chroma"
     chroma_db_path: str = "./data/chroma"

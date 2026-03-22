@@ -96,20 +96,23 @@ class Supervisor:
         history = self._memory.format_for_prompt()
         prefs = self._preferences.all()
 
-        # 1. Clarify
+        # 1. Clarify — skip if the query already contains a user clarification answer
         _t0 = time.time()
-        clarifier_result = run_with_retry(
-            lambda: self._clarifier.run(query=query, history=history),
-            self._max_retries,
-        )
-        if context:
-            context.consume(self._clarifier.last_token_count)
+        if "[User clarification:" in query:
+            clarifier_result = None
+        else:
+            clarifier_result = run_with_retry(
+                lambda: self._clarifier.run(query=query, history=history),
+                self._max_retries,
+            )
+            if context:
+                context.consume(self._clarifier.last_token_count)
         if progress_callback:
             progress_callback("Clarifier", {
-                "needs_clarification": clarifier_result.needs_clarification,
+                "needs_clarification": clarifier_result.needs_clarification if clarifier_result else False,
                 "duration_s": round(time.time() - _t0, 2),
             })
-        if clarifier_result.needs_clarification:
+        if clarifier_result and clarifier_result.needs_clarification:
             self._memory.add_exchange(user=query, assistant=clarifier_result.question)
             return clarifier_result.question
 

@@ -53,9 +53,9 @@ def main() -> None:
     print("Irish Statute Research Assistant")
     print("Type your legal question, or 'quit' to exit.\n")
 
-    awaiting_clarification = False
+    pending_query: str | None = None
     while True:
-        prompt = "Your clarification: " if awaiting_clarification else "Your question: "
+        prompt = "Your clarification: " if pending_query else "Your question: "
         try:
             user_input = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
@@ -69,9 +69,16 @@ def main() -> None:
         if not user_input:
             continue
 
+        if pending_query:
+            pipeline_input = f"{pending_query}\n\n[User clarification: {user_input}]"
+            pending_query = None
+        else:
+            pipeline_input = user_input
+
         try:
-            result = pipeline.query(user_input)
-            awaiting_clarification = isinstance(result, str)
+            result = pipeline.query(pipeline_input)
+            if isinstance(result, str):
+                pending_query = pipeline_input
             print(format_output(result))
         except StatuteNotFoundError:
             print("\nNo relevant statutes were found for your question. Please try a different topic.\n")

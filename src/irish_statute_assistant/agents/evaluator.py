@@ -1,9 +1,13 @@
+import logging
+
 from langchain_core.prompts import ChatPromptTemplate
 
 from irish_statute_assistant.agents.base_agent import BaseAgent
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.llm import get_llm
 from irish_statute_assistant.models.schemas import EvaluatorOutput, WriterOutput
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are a quality evaluator for an Irish legal research assistant.
 Score the output on these four criteria (each 0.0–1.0, overall score is the average):
@@ -43,7 +47,7 @@ class EvaluatorAgent(BaseAgent):
 
     def __init__(self, config: Config) -> None:
         self._threshold = config.evaluator_pass_threshold
-        llm = get_llm(config, max_tokens=512).with_structured_output(EvaluatorOutput)
+        llm = get_llm(config, max_tokens=1024).with_structured_output(EvaluatorOutput)
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("human", HUMAN_PROMPT),
@@ -70,7 +74,7 @@ class EvaluatorAgent(BaseAgent):
             if not grounding_passed
             else ""
         )
-        result = self._invoke_chain(self._chain, {
+        inputs = {
             "threshold": self._threshold,
             "grounding_note": grounding_note,
             "query": query,
@@ -81,5 +85,23 @@ class EvaluatorAgent(BaseAgent):
                 f"{kc.text} ({kc.act}, {kc.section})" for kc in bd.key_clauses
             ),
             "caveats": "\n".join(bd.caveats),
-        })
-        return result.model_copy(update={"pass_": result.score >= self._threshold})
+        }
+        logger.info(
+            "Evaluator input — query: %r | short_answer length: %d | "
+            "relevant_acts: %s | key_clauses: %d | grounding_passed: %s",
+            query,
+            len(output.short_answer),
+            inputs["relevant_acts"] or "(none)",
+            len(bd.key_clauses),
+            grounding_passed,
+        )
+        result = self._invoke_chain(self._chain, inputs)
+        final = result.model_copy(update={"pass_": result.score >= self._threshold})
+        logger.info(
+            "Evaluator result — score: %.2f | pass: %s | flags: %s | tokens used: %d",
+            final.score,
+            final.pass_,
+            final.flags or "(none)",
+            self.last_token_count,
+        )
+        return final

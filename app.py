@@ -9,7 +9,14 @@ Run with:
 """
 from __future__ import annotations
 
+import logging
+
 import streamlit as st
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
 
 from irish_statute_assistant.config import Config
 from irish_statute_assistant.exceptions import (
@@ -43,6 +50,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []        # {"role": "user"|"assistant", "content": str}
 if "pipeline_steps" not in st.session_state:
     st.session_state.pipeline_steps = []  # {"agent": str, "stats": dict}
+if "pending_query" not in st.session_state:
+    st.session_state.pending_query = None  # original query awaiting clarification
 
 # Clear the pipeline steps as soon as a new query is submitted — before the
 # sidebar renders — so the old steps don't flash while the new query runs.
@@ -136,6 +145,13 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
+    # If we're in a clarification flow, combine the original query with the user's answer
+    if st.session_state.pending_query:
+        pipeline_input = f"{st.session_state.pending_query}\n\n[User clarification: {user_input}]"
+        st.session_state.pending_query = None
+    else:
+        pipeline_input = user_input
+
     # Track next expected agent for the spinner
     _AGENT_ORDER = [
         "Clarifier", "Researcher", "Analyst", "Devil's Advocate",
@@ -160,7 +176,7 @@ if user_input:
 
     result = None
     try:
-        result = pipeline.query(user_input, progress_callback=on_step)
+        result = pipeline.query(pipeline_input, progress_callback=on_step)
     except StatuteNotFoundError:
         st.error("No relevant statutes found. Please try rephrasing your question.")
     except BudgetExceededError:
@@ -180,7 +196,8 @@ if user_input:
         _render_pipeline(st.session_state.pipeline_steps)
 
     if isinstance(result, str):
-        # Clarifying question
+        # Clarifying question — remember the original query so the next response has context
+        st.session_state.pending_query = pipeline_input
         st.session_state.messages.append({"role": "assistant", "content": result})
         with st.chat_message("assistant"):
             st.markdown(result)

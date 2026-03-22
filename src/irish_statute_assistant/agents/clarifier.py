@@ -39,7 +39,7 @@ class ClarifierAgent(BaseAgent):
     """
 
     def __init__(self, config: Config) -> None:
-        llm = get_llm(config, max_tokens=256).with_structured_output(ClarifierOutput)
+        llm = get_llm(config, max_tokens=512).with_structured_output(ClarifierOutput)
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("human", HUMAN_PROMPT),

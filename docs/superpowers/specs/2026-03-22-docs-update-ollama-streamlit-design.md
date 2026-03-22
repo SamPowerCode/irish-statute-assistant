@@ -15,7 +15,7 @@ Surgical updates to four user-facing documentation files to reflect two new feat
 
 ## Scope
 
-Four files only. No restructuring — add the missing content where it fits naturally.
+Five files only. No restructuring — add the missing content where it fits naturally.
 
 | File | What changes |
 |---|---|
@@ -23,6 +23,7 @@ Four files only. No restructuring — add the missing content where it fits natu
 | `docs/user-guide/installation.md` | Ollama config block, Streamlit optional install section |
 | `docs/user-guide/running.md` | Streamlit UI section |
 | `docs/user-guide/configuration.md` | `LLM_PROVIDER` options, `MODEL_NAME` note, `OLLAMA_BASE_URL` row |
+| `.env.example` | Add Ollama provider comment block |
 
 ---
 
@@ -67,6 +68,7 @@ Four files only. No restructuring — add the missing content where it fits natu
    uv run --extra ui streamlit run app.py
    ```
    Opens a browser UI at `http://localhost:8501` with a live pipeline trace sidebar.
+   (The `--extra ui` flag installs Streamlit on the fly if not already installed.)
    ```
 
 ---
@@ -96,7 +98,7 @@ Four files only. No restructuring — add the missing content where it fits natu
    Then run:
 
    ```bash
-   streamlit run app.py
+   uv run streamlit run app.py
    ```
 
    See [Running — Streamlit UI](running.md#streamlit-ui) for details.
@@ -114,7 +116,7 @@ Add a new "Streamlit UI" section after the "Start" section (before "Example inte
 If you installed the `ui` extra (see [Installation](installation.md#optional-streamlit-ui)):
 
 ```bash
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 Opens the assistant at `http://localhost:8501`. The interface has two panels:
@@ -154,6 +156,21 @@ Opens the assistant at `http://localhost:8501`. The interface has two panels:
    ```
    | `OLLAMA_BASE_URL` | string | `http://localhost:11434` | Ollama server URL. Only used when `LLM_PROVIDER=ollama` |
    ```
+
+---
+
+### `.env.example`
+
+Add an Ollama comment block after the existing provider entries. Current file ends with `HF_TOKEN`. Add before or after it:
+
+```
+# Or Ollama (local — no API key needed)
+# LLM_PROVIDER=ollama
+# MODEL_NAME=llama3.2
+# OLLAMA_BASE_URL=http://localhost:11434
+```
+
+The existing lines (`ANTHROPIC_API_KEY`, `MODEL_NAME`, etc.) are kept unchanged — only the Ollama block is added.
 
 ---
 

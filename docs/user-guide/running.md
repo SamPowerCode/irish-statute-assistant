@@ -15,6 +15,21 @@ Type your legal question, or 'quit' to exit.
 Your question:
 ```
 
+## Streamlit UI
+
+If you installed the `ui` extra (see [Installation](installation.md#optional-streamlit-ui)):
+
+```bash
+uv run streamlit run app.py
+```
+
+Opens the assistant at `http://localhost:8501`. The interface has two panels:
+
+- **Main area** — chat conversation: type your question, read the response
+- **Sidebar** — live pipeline trace: shows each agent as it runs, with timing and key stats (acts found, confidence score, evaluator result, etc.)
+
+---
+
 ## Example interaction
 
 ```

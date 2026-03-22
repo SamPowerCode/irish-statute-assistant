@@ -42,18 +42,25 @@ class Pipeline:
         self._preferences = UserPreferenceStore(db_path=config.preferences_db_path)
         self._supervisor = Supervisor(config, memory=self._memory, preferences=self._preferences)
 
-    def query(self, user_query: str) -> WriterOutput | str:
+    def query(self, user_query: str, progress_callback=None) -> WriterOutput | str:
         """Submit a user query and return the assistant's response.
 
         Args:
             user_query: The user's legal question.
+            progress_callback: Optional callable fired after each agent completes.
+                Receives (agent_name: str, stats: dict). Used by the Streamlit UI
+                to update the pipeline trace panel in real time.
 
         Returns:
             A clarifying question string if the query is ambiguous,
             or a WriterOutput with the final answer.
         """
         context = QueryContext(budget=self._config.token_budget_per_query)
-        result = self._supervisor.run(query=user_query, context=context)
+        result = self._supervisor.run(
+            query=user_query,
+            context=context,
+            progress_callback=progress_callback,
+        )
         logger.info(
             "Query used %d/%d tokens",
             context.tokens_used,

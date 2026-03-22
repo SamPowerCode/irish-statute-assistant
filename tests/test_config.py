@@ -98,7 +98,7 @@ def test_config_ollama_defaults():
 
 
 def test_config_ollama_custom_url():
-    """OLLAMA_BASE_URL env var is picked up correctly."""
+    """ollama_base_url field accepts a custom value."""
     config = Config(
         llm_provider="ollama",
         model_name="mistral",

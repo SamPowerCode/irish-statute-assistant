@@ -27,6 +27,33 @@ Conversation history and user preferences persist across sessions in SQLite.
 The assistant automatically retries with evaluator feedback when output quality
 falls below threshold.
 
+```mermaid
+flowchart TD
+    Q([User Query]) --> Clarifier
+    ConvStore[(Conversation\nHistory)] -->|prior exchanges| Clarifier
+
+    Clarifier -->|ambiguous| CQ([Clarifying question → user])
+    Clarifier -->|clear| Researcher
+
+    VS[(Vector Store\nChromaDB / Qdrant)] --> Researcher
+    ISB[irishstatutebook.ie] -. live fallback .-> Researcher
+
+    Researcher --> Analyst
+    Analyst --> DA["Devil's Advocate"]
+    DA --> Writer
+
+    PrefStore[(User\nPreferences)] -->|language & verbosity| Writer
+
+    Writer --> GC[Grounding Checker]
+    GC --> Eval[Evaluator]
+
+    Eval -->|"score ≥ 0.7 — pass"| Answer([Answer → User])
+    Eval -->|"score < 0.7 — retry"| DA
+
+    Answer --> ConvStore
+    Answer --> PrefStore
+```
+
 ### Reliability features
 
 - **Typed exception hierarchy** — `StatuteNotFoundError`, `BudgetExceededError`, `ValidationRepairError`

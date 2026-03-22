@@ -8,21 +8,29 @@ sequentially — there is no parallelism.
 
 ```{mermaid}
 flowchart TD
-    A([User Query]) --> B[Clarifier]
-    B -->|needs clarification| C([Clarifying Question → User])
-    B -->|clear| D[Researcher]
-    D --> E[Analyst]
-    E --> F[Devil's Advocate]
-    F --> G{Confidence Gate}
-    G -->|low confidence or major challenge| H["Refinement Loop\n(doubled rounds, strict mode)"]
-    G -->|normal| I["Refinement Loop\n(standard rounds)"]
-    H --> J[Writer]
-    I --> J
-    J --> K[Grounding Checker]
-    K --> L[Evaluator]
-    L -->|pass| M([Answer → User])
-    L -->|fail, retries remain| J
-    L -->|fail, exhausted| M
+    Q([User Query]) --> Clarifier
+    ConvStore[(Conversation\nHistory)] -->|prior exchanges| Clarifier
+
+    Clarifier -->|ambiguous| CQ([Clarifying question → user])
+    Clarifier -->|clear| Researcher
+
+    VS[(Vector Store\nChromaDB / Qdrant)] --> Researcher
+    ISB[irishstatutebook.ie] -. live fallback .-> Researcher
+
+    Researcher --> Analyst
+    Analyst --> DA["Devil's Advocate"]
+    DA --> Writer
+
+    PrefStore[(User\nPreferences)] -->|language & verbosity| Writer
+
+    Writer --> GC[Grounding Checker]
+    GC --> Eval[Evaluator]
+
+    Eval -->|"score ≥ 0.7 — pass"| Answer([Answer → User])
+    Eval -->|"score < 0.7 — retry"| DA
+
+    Answer --> ConvStore
+    Answer --> PrefStore
 ```
 
 ## Agents at a glance

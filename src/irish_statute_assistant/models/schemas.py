@@ -103,7 +103,7 @@ class AdvocateOutput(BaseModel):
     """Challenges raised by the devil's advocate."""
 
     challenges: list[str] = Field(default_factory=list, max_length=5)
-    severity: Literal["minor", "major"]
+    severity: Literal["minor", "major"] = "minor"
 
 
 class GroundingOutput(BaseModel):

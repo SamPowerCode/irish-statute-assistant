@@ -15,12 +15,13 @@ Type your legal question, or 'quit' to exit.
 Your question:
 ```
 
+(streamlit-ui)=
 ## Streamlit UI
 
 If you installed the `ui` extra (see [Installation](installation.md#optional-streamlit-ui)):
 
 ```bash
-uv run streamlit run app.py
+uv run --extra ui streamlit run app.py
 ```
 
 Opens the assistant at `http://localhost:8501`. The interface has two panels:

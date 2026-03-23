@@ -124,6 +124,6 @@ Key settings (set in `.env` or as environment variables):
 | `VECTOR_STORE_BACKEND` | `chroma` | `chroma` or `qdrant` |
 | `EVALUATOR_PASS_THRESHOLD` | `0.7` | Minimum quality score to accept an answer |
 | `MAX_REFINEMENT_ROUNDS` | `2` | Refinement retries before returning best attempt |
-| `TOKEN_BUDGET_PER_QUERY` | `20000` | Token limit per query across all agents |
+| `TOKEN_BUDGET_PER_QUERY` | `100000` | Token limit per query across all agents |
 
 See the [full configuration reference](https://irish-statute-assistant.readthedocs.io/user-guide/configuration.html) for all settings.

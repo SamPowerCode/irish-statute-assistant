@@ -23,6 +23,7 @@ html_theme = "furo"
 html_title = "Irish Statute Assistant"
 
 myst_enable_extensions = ["colon_fence"]
+myst_heading_anchors = 3
 
 autodoc_default_options = {
     "members": True,

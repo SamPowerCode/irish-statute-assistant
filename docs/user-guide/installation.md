@@ -76,6 +76,7 @@ uv run python -m irish_statute_assistant.indexer
 
 This crawls irishstatutebook.ie by legal category, embeds the statute sections, and writes them to the configured vector store. Re-run this command to refresh the index.
 
+(optional-streamlit-ui)=
 ## Optional: Streamlit UI
 
 To use the browser-based interface, install the `ui` extra:

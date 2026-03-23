@@ -16,7 +16,7 @@ def fetcher():
 
 def test_search_statutes_returns_results(fetcher, httpx_mock: HTTPXMock, sample_solr_search_response):
     httpx_mock.add_response(
-        url=f"{SOLR_URL}?q=personal+injury&wt=json",
+        url=f"{SOLR_URL}?q=personal+injury&wt=json&rows=15",
         text=sample_solr_search_response,
     )
     results = fetcher.search("personal injury")
@@ -37,7 +37,7 @@ def test_search_statutes_returns_only_acts(fetcher, httpx_mock: HTTPXMock):
         }
     })
     httpx_mock.add_response(
-        url=f"{SOLR_URL}?q=civil&wt=json",
+        url=f"{SOLR_URL}?q=civil&wt=json&rows=15",
         text=mixed_response,
     )
     results = fetcher.search("civil")
@@ -53,7 +53,7 @@ def test_search_statutes_returns_at_most_5(fetcher, httpx_mock: HTTPXMock):
         for i in range(10)
     ]
     response = json.dumps({"response": {"docs": docs}})
-    httpx_mock.add_response(url=f"{SOLR_URL}?q=test&wt=json", text=response)
+    httpx_mock.add_response(url=f"{SOLR_URL}?q=test&wt=json&rows=15", text=response)
     results = fetcher.search("test")
     assert len(results) <= 5
 
@@ -76,7 +76,7 @@ def test_fetch_act_sections_uses_cache(fetcher, httpx_mock: HTTPXMock, sample_ht
 
 
 def test_search_statutes_retries_on_failure(fetcher, httpx_mock: HTTPXMock, sample_solr_search_response):
-    httpx_mock.add_response(url=f"{SOLR_URL}?q=test&wt=json", status_code=500)
-    httpx_mock.add_response(url=f"{SOLR_URL}?q=test&wt=json", text=sample_solr_search_response)
+    httpx_mock.add_response(url=f"{SOLR_URL}?q=test&wt=json&rows=15", status_code=500)
+    httpx_mock.add_response(url=f"{SOLR_URL}?q=test&wt=json&rows=15", text=sample_solr_search_response)
     results = fetcher.search("test")
     assert len(results) >= 1

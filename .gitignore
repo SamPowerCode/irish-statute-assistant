@@ -8,6 +8,8 @@ data/chroma/
 .venv/
 .env
 .idea/
+.claude/
 .vscode/
 docs/_build/
 .superpowers/
+.coverage

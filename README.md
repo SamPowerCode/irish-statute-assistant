@@ -81,7 +81,7 @@ cp .env.example .env
 uv run python -m irish_statute_assistant.indexer
 ```
 
-**Run:**
+**Run (CLI):**
 
 ```bash
 uv run python -m irish_statute_assistant.main

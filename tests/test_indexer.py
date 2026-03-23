@@ -25,6 +25,7 @@ def run_indexer(search_side_effect, fetch_side_effect, acts_per_category=5,
     mock_config.index_categories = index_categories
     mock_config.rate_limit_delay = 0.0
     mock_config.max_retries = 1
+    mock_config.log_level = "INFO"
 
     mock_fetcher = MagicMock()
     mock_fetcher.search.side_effect = search_side_effect

@@ -9,17 +9,9 @@ Run with:
 """
 from __future__ import annotations
 
-import logging
-
 import streamlit as st
 
 from irish_statute_assistant.config import Config
-
-logging.basicConfig(
-    level=getattr(logging, Config().log_level.upper(), logging.INFO),
-    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
-)
-from irish_statute_assistant.agents.base_agent import set_message_hook
 from irish_statute_assistant.exceptions import (
     BudgetExceededError,
     FatalError,
@@ -51,10 +43,6 @@ if "messages" not in st.session_state:
     st.session_state.messages = []        # {"role": "user"|"assistant", "content": str}
 if "pipeline_steps" not in st.session_state:
     st.session_state.pipeline_steps = []  # {"agent": str, "stats": dict}
-if "pending_query" not in st.session_state:
-    st.session_state.pending_query = None  # original query awaiting clarification
-if "agent_messages" not in st.session_state:
-    st.session_state.agent_messages = []  # {"agent": str, "inputs": dict, "output": str}
 
 # Clear the pipeline steps as soon as a new query is submitted — before the
 # sidebar renders — so the old steps don't flash while the new query runs.
@@ -62,7 +50,6 @@ if "agent_messages" not in st.session_state:
 # rerun, before the widget call itself, so this check works.
 if st.session_state.get("_chat_input"):
     st.session_state.pipeline_steps = []
-    st.session_state.agent_messages = []
 
 # ── Helper: render one pipeline step row ──────────────────────────────────────
 
@@ -124,7 +111,7 @@ def _render_pipeline(steps: list[dict], spinning: str | None = None) -> None:
         st.caption(f"{rounds} round(s) · {total_dur:.1f}s total")
 
 
-# ── Sidebar: pipeline trace + message log ─────────────────────────────────────
+# ── Sidebar: pipeline trace ────────────────────────────────────────────────────
 
 with st.sidebar:
     st.subheader("Pipeline")
@@ -132,27 +119,17 @@ with st.sidebar:
     with pipe_placeholder.container():
         _render_pipeline(st.session_state.pipeline_steps)
 
-    st.divider()
-    st.subheader("Message Log")
-    msg_placeholder = st.empty()
-
-def _render_message_log(messages: list[dict]) -> None:
-    with msg_placeholder.container():
-        if not messages:
-            st.caption("Agent messages will appear here during a query.")
-            return
-        for entry in messages:
-            with st.expander(entry["agent"], expanded=False):
-                st.markdown("**Input**")
-                st.json(entry["inputs"])
-                st.markdown("**Output**")
-                st.json(entry["output"])
-
-_render_message_log(st.session_state.agent_messages)
-
 # ── Render existing conversation ───────────────────────────────────────────────
 
 st.title("🏛 Irish Statute Research Assistant")
+
+st.warning(
+    "**Disclaimer:** This tool is not a substitute for legal advice. It provides an "
+    "interpretation of statute text only and does not account for upcoming or recently "
+    "enacted legislation, or how the courts have interpreted these statutes. "
+    "For legal matters, consult a qualified solicitor or barrister.",
+    icon="⚠️",
+)
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -166,13 +143,6 @@ if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
-
-    # If we're in a clarification flow, combine the original query with the user's answer
-    if st.session_state.pending_query:
-        pipeline_input = f"{st.session_state.pending_query}\n\n[User clarification: {user_input}]"
-        st.session_state.pending_query = None
-    else:
-        pipeline_input = user_input
 
     # Track next expected agent for the spinner
     _AGENT_ORDER = [
@@ -192,28 +162,13 @@ if user_input:
         with pipe_placeholder.container():
             _render_pipeline(st.session_state.pipeline_steps, spinning=next_agent[0] or None)
 
-    def on_message(agent_name: str, inputs: dict, output_json: str) -> None:
-        import json as _json
-        try:
-            output = _json.loads(output_json)
-        except Exception:
-            output = output_json
-        st.session_state.agent_messages.append({
-            "agent": agent_name,
-            "inputs": inputs,
-            "output": output,
-        })
-        _render_message_log(st.session_state.agent_messages)
-
-    set_message_hook(on_message)
-
     # Show initial spinner
     with pipe_placeholder.container():
         _render_pipeline([], spinning="Clarifier")
 
     result = None
     try:
-        result = pipeline.query(pipeline_input, progress_callback=on_step)
+        result = pipeline.query(user_input, progress_callback=on_step)
     except StatuteNotFoundError:
         st.error("No relevant statutes found. Please try rephrasing your question.")
     except BudgetExceededError:
@@ -228,25 +183,18 @@ if user_input:
     except Exception as e:
         st.error(f"Something went wrong: {e}")
 
-    set_message_hook(None)
-
     # Final render — no spinner
     with pipe_placeholder.container():
         _render_pipeline(st.session_state.pipeline_steps)
 
     if isinstance(result, str):
-        # Clarifying question — remember the original query so the next response has context
-        st.session_state.pending_query = pipeline_input
+        # Clarifying question
         st.session_state.messages.append({"role": "assistant", "content": result})
         with st.chat_message("assistant"):
             st.markdown(result)
     elif isinstance(result, WriterOutput):
         bd = result.detailed_breakdown
         lines = [f"**{result.short_answer}**", ""]
-
-        if bd.summary:
-            lines.append(bd.summary)
-            lines.append("")
 
         if bd.relevant_acts:
             lines.append("**Relevant Acts:** " + ", ".join(bd.relevant_acts))

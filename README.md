@@ -8,6 +8,13 @@ multi-agent pipeline that retrieves, analyses, and verifies statute text from
 
 ---
 
+> **Disclaimer:** This tool is not a substitute for legal advice. It provides an
+> interpretation of statute text only and does not account for upcoming or recently
+> enacted legislation, or how the courts have interpreted these statutes. For legal
+> matters, consult a qualified solicitor or barrister.
+
+---
+
 ## How it works
 
 Eight agents orchestrated by a Supervisor:

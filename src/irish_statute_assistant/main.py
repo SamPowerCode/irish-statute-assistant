@@ -56,6 +56,12 @@ def main() -> None:
     pipeline = Pipeline(config)
 
     print("Irish Statute Research Assistant")
+    print(
+        "DISCLAIMER: This tool is not a substitute for legal advice. It provides an\n"
+        "interpretation of statute text only and does not account for upcoming or\n"
+        "recently enacted legislation, or how the courts have interpreted these statutes.\n"
+        "For legal matters, consult a qualified solicitor or barrister.\n"
+    )
     print("Type your legal question, or 'quit' to exit.\n")
 
     pending_query: str | None = None

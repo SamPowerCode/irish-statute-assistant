@@ -43,6 +43,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []        # {"role": "user"|"assistant", "content": str}
 if "pipeline_steps" not in st.session_state:
     st.session_state.pipeline_steps = []  # {"agent": str, "stats": dict}
+if "pending_query" not in st.session_state:
+    st.session_state.pending_query = None  # original query awaiting clarification
 
 # Clear the pipeline steps as soon as a new query is submitted — before the
 # sidebar renders — so the old steps don't flash while the new query runs.
@@ -144,6 +146,13 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
+    # Combine with pending query if answering a clarification
+    if st.session_state.pending_query:
+        pipeline_input = f"{st.session_state.pending_query}\n\n[User clarification: {user_input}]"
+        st.session_state.pending_query = None
+    else:
+        pipeline_input = user_input
+
     # Track next expected agent for the spinner
     _AGENT_ORDER = [
         "Clarifier", "Researcher", "Analyst", "Devil's Advocate",
@@ -168,7 +177,7 @@ if user_input:
 
     result = None
     try:
-        result = pipeline.query(user_input, progress_callback=on_step)
+        result = pipeline.query(pipeline_input, progress_callback=on_step)
     except StatuteNotFoundError:
         st.error("No relevant statutes found. Please try rephrasing your question.")
     except BudgetExceededError:
@@ -188,7 +197,8 @@ if user_input:
         _render_pipeline(st.session_state.pipeline_steps)
 
     if isinstance(result, str):
-        # Clarifying question
+        # Clarifying question — save original query so next input can be combined
+        st.session_state.pending_query = pipeline_input
         st.session_state.messages.append({"role": "assistant", "content": result})
         with st.chat_message("assistant"):
             st.markdown(result)

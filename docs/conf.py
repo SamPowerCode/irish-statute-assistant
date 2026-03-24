@@ -40,4 +40,4 @@ napoleon_include_init_with_doc = True
 suppress_warnings = ["myst.header"]
 
 # Exclude internal planning/spec files from the build
-exclude_patterns = ["superpowers/**"]
+exclude_patterns = ["superpowers/**", "spec.md"]

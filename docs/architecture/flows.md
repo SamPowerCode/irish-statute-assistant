@@ -16,7 +16,7 @@ sequenceDiagram
 
     U->>P: query("What are my rights?")
     P->>Cl: run(query, history="")
-    Cl-->>P: ClarifierOutput(needs_clarification=True,<br/>question="What area of law?")
+    Cl-->>P: ClarifierOutput(needs_clarification=True, question="What area of law?")
     P->>M: add_exchange(user=query, assistant=question)
     P-->>U: "What area of law?"
 
@@ -82,7 +82,7 @@ sequenceDiagram
     Ad-->>S: AdvocateOutput(challenges, severity)
 
     alt confidence < 0.5 OR severity == "major"
-        Note over S: effective_refinements = max_refinements × 2
+        Note over S: effective_refinements = max_refinements * 2
         Note over S: advocate_mode_on_retry = "strict"
     else
         Note over S: effective_refinements = max_refinements

@@ -9,25 +9,25 @@ sequentially — there is no parallelism.
 ```{mermaid}
 flowchart TD
     Q([User Query]) --> Clarifier
-    ConvStore[(Conversation\nHistory)] -->|prior exchanges| Clarifier
+    ConvStore[(Conversation History)] -->|prior exchanges| Clarifier
 
-    Clarifier -->|ambiguous| CQ([Clarifying question → user])
+    Clarifier -->|ambiguous| CQ([Clarifying question to user])
     Clarifier -->|clear| Researcher
 
-    VS[(Vector Store\nChromaDB / Qdrant)] --> Researcher
+    VS[(Vector Store - ChromaDB / Qdrant)] --> Researcher
     ISB[irishstatutebook.ie] -. live fallback .-> Researcher
 
     Researcher --> Analyst
     Analyst --> DA["Devil's Advocate"]
     DA --> Writer
 
-    PrefStore[(User\nPreferences)] -->|language & verbosity| Writer
+    PrefStore[(User Preferences)] -->|language & verbosity| Writer
 
     Writer --> GC[Grounding Checker]
     GC --> Eval[Evaluator]
 
-    Eval -->|"score ≥ 0.7 — pass"| Answer([Answer → User])
-    Eval -->|"score < 0.7 — retry"| DA
+    Eval -->|"score >= 0.7 - pass"| Answer([Answer to User])
+    Eval -->|"score < 0.7 - retry"| DA
 
     Answer --> ConvStore
     Answer --> PrefStore
